@@ -12,7 +12,6 @@ ShellRoot {
   property color foreground: "#cacccc"
 
   property int width_: 300
-  property int flangeW: 64
   property int rBottom: 18
   property int rTop: 18
   property int headerH: 44
@@ -112,39 +111,38 @@ ShellRoot {
         strokeColor: "transparent"
         strokeWidth: 0
 
-        readonly property real cx: root.width_ / 2
-        readonly property real fw: root.flangeW
         readonly property real rt: root.rTop
         readonly property real rb: root.rBottom
         readonly property real w: root.width_
         readonly property real h: root.totalH
 
-        startX: cx - fw / 2
-        startY: 0
+        // Sin cuello en medio: las dos esquinas de ARRIBA son cóncavas (se
+        // "pegan" a la barra ahí mismo), el borde de arriba entre ellas es
+        // recto. Abajo, esquinas normales convexas.
+        startX: 0
+        startY: rt
 
-        // Top-right of flange.
-        PathLine { x: outline.cx + outline.fw / 2; y: 0 }
-        // Concave fillet down into the shoulder.
+        // Filete cóncavo arriba-izquierda.
         PathArc {
-          x: outline.cx + outline.fw / 2 + outline.rt
+          x: outline.rt
+          y: 0
+          radiusX: outline.rt
+          radiusY: outline.rt
+          direction: PathArc.Counterclockwise
+        }
+        // Borde de arriba, recto.
+        PathLine { x: outline.w - outline.rt; y: 0 }
+        // Filete cóncavo arriba-derecha.
+        PathArc {
+          x: outline.w
           y: outline.rt
           radiusX: outline.rt
           radiusY: outline.rt
           direction: PathArc.Counterclockwise
         }
-        // Top edge, right side.
-        PathLine { x: outline.w - outline.rb; y: outline.rt }
-        // Top-right convex corner.
-        PathArc {
-          x: outline.w
-          y: outline.rt + outline.rb
-          radiusX: outline.rb
-          radiusY: outline.rb
-          direction: PathArc.Clockwise
-        }
-        // Right edge.
+        // Borde derecho.
         PathLine { x: outline.w; y: outline.h - outline.rb }
-        // Bottom-right convex corner.
+        // Esquina abajo-derecha, convexa normal.
         PathArc {
           x: outline.w - outline.rb
           y: outline.h
@@ -152,35 +150,15 @@ ShellRoot {
           radiusY: outline.rb
           direction: PathArc.Clockwise
         }
-        // Bottom edge.
+        // Borde de abajo.
         PathLine { x: outline.rb; y: outline.h }
-        // Bottom-left convex corner.
+        // Esquina abajo-izquierda, convexa normal.
         PathArc {
           x: 0
           y: outline.h - outline.rb
           radiusX: outline.rb
           radiusY: outline.rb
           direction: PathArc.Clockwise
-        }
-        // Left edge.
-        PathLine { x: 0; y: outline.rt + outline.rb }
-        // Top-left convex corner.
-        PathArc {
-          x: outline.rb
-          y: outline.rt
-          radiusX: outline.rb
-          radiusY: outline.rb
-          direction: PathArc.Clockwise
-        }
-        // Top edge, left side.
-        PathLine { x: outline.cx - outline.fw / 2 - outline.rt; y: outline.rt }
-        // Concave fillet up into the flange.
-        PathArc {
-          x: outline.cx - outline.fw / 2
-          y: 0
-          radiusX: outline.rt
-          radiusY: outline.rt
-          direction: PathArc.Counterclockwise
         }
       }
     }
