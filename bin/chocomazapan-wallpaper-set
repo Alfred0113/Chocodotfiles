@@ -1,12 +1,16 @@
 #!/bin/bash
-# Selecciona un wallpaper (de ~/Imágenes/Wallpapers), lo pone de fondo con
-# swaybg, y genera theming/current/colors.toml a partir de esa imagen usando
-# aether (extracción headless, sin abrir su GUI).
+# Selecciona un wallpaper y genera theming/current/colors.toml a partir de
+# esa imagen usando aether (bjarneo/aether, la app de theming instalada).
 #
 # Uso:
-#   chocomazapan-wallpaper-set                       -> selector interactivo con miniaturas
-#   chocomazapan-wallpaper-set random [modo]          -> imagen al azar
-#   chocomazapan-wallpaper-set <archivo|nombre> [modo]
+#   chocomazapan-wallpaper-set                        -> abre la GUI real de aether
+#                                                         (picker de wallpapers, 24 modos
+#                                                         de extracción, preview en vivo).
+#                                                         Cada vez que le das "Apply" ahí
+#                                                         adentro, este script lo detecta y
+#                                                         sincroniza con el resto del setup.
+#   chocomazapan-wallpaper-set random [modo]          -> headless, imagen al azar
+#   chocomazapan-wallpaper-set <archivo|nombre> [modo] -> headless
 #
 # [modo] es un modo de extracción de aether (aether --list-modes). Por
 # defecto "colorful" (paleta vibrante en OKLCH).
@@ -15,6 +19,7 @@ set -euo pipefail
 
 WALLPAPER_DIR="$HOME/Imágenes/Wallpapers"
 CURRENT_DIR="$HOME/dotfiles/theming/current"
+AETHER_THEME_DIR="$HOME/.config/aether/theme"
 MODE_STATE_FILE="$CURRENT_DIR/extract-mode"
 
 mkdir -p "$CURRENT_DIR"
@@ -30,17 +35,82 @@ pick_random_image() {
     list_images | shuf -n1
 }
 
-# Sin argumentos: delega en el menú "wallpapers" de Walker (elephant-menus,
-# ~/dotfiles/walker/menus/wallpapers.lua), que muestra miniatura real por
-# imagen y preview grande. Return -> matugen, Ctrl+Return -> wallust. Cada
-# entrada llama de vuelta a este mismo script con imagen+motor explícitos
-# (rama no interactiva de abajo), así que aquí solo hace falta abrir el menú.
+# Aplica el wallpaper real (swaybg) y sincroniza el resto del setup a partir
+# de lo que ya haya en theming/current/colors.toml.
+sync_desktop() {
+    local image="$1" mode="$2"
+
+    pkill -x swaybg 2>/dev/null || true
+    sleep 0.2
+    setsid swaybg -i "$image" -m fill >/dev/null 2>&1 &
+    disown
+
+    ln -sfn "$image" "$CURRENT_DIR/wallpaper"
+    echo "$mode" >"$MODE_STATE_FILE"
+
+    "$HOME/dotfiles/bin/chocomazapan-apply-theme"
+
+    if pidof waybar >/dev/null; then
+        pkill -x waybar 2>/dev/null || true
+        sleep 0.2
+        setsid uwsm-app -- waybar >/dev/null 2>&1 &
+        disown
+    fi
+
+    if pidof mako >/dev/null; then
+        makoctl reload >/dev/null 2>&1 || true
+    fi
+
+    if pidof walker >/dev/null; then
+        pkill -x walker 2>/dev/null || true
+        sleep 0.2
+        setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service >/dev/null 2>&1 &
+        disown
+    fi
+
+    if pidof swayosd-server >/dev/null; then
+        "$HOME/dotfiles/bin/chocomazapan-restart-swayosd" >/dev/null 2>&1 || true
+    fi
+
+    "$HOME/dotfiles/bin/chocomazapan-theme-set-browser" >/dev/null 2>&1 || true
+    "$HOME/dotfiles/bin/chocomazapan-rgb-sync" >/dev/null 2>&1 || true
+    "$HOME/dotfiles/bin/chocomazapan-obsidian-sync" >/dev/null 2>&1 || true
+    "$HOME/dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true
+
+    echo "Wallpaper: $(basename "$image")"
+    echo "Modo: $mode"
+}
+
 if [ -z "$image_arg" ]; then
-    chocomazapan-launch-walker -m menus:wallpapers --width 800 --minheight 400
+    # Interactivo: la GUI real de aether. Mientras esté abierta, vigilamos su
+    # colors.toml — cada cambio (cada "Apply" que el usuario haga ahí) dispara
+    # sync_desktop con la imagen más reciente en aether/theme/backgrounds/.
+    setsid uwsm-app -- aether >/dev/null 2>&1 &
+    aether_pid=$!
+    disown
+
+    colors_file="$AETHER_THEME_DIR/colors.toml"
+    last_mtime=""
+    [ -f "$colors_file" ] && last_mtime="$(stat -c %Y "$colors_file" 2>/dev/null || echo "")"
+
+    while kill -0 "$aether_pid" 2>/dev/null; do
+        sleep 1
+        [ -f "$colors_file" ] || continue
+
+        mtime="$(stat -c %Y "$colors_file" 2>/dev/null || echo "")"
+        [ "$mtime" = "$last_mtime" ] && continue
+        last_mtime="$mtime"
+
+        bg_image="$(find "$AETHER_THEME_DIR/backgrounds" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+        [ -n "$bg_image" ] || continue
+
+        cp "$colors_file" "$CURRENT_DIR/colors.toml"
+        sync_desktop "$bg_image" "aether-gui"
+    done
     exit 0
 fi
 
-# Resolver imagen.
+# Headless: resolver imagen.
 if [ "$image_arg" = "random" ] || [ "$image_arg" = "--random" ]; then
     image="$(pick_random_image)"
 else
@@ -56,7 +126,6 @@ if [ ! -f "$image" ]; then
     exit 1
 fi
 
-# Resolver modo de extracción.
 if [ -n "$mode_arg" ]; then
     mode="$mode_arg"
 elif [ -f "$MODE_STATE_FILE" ]; then
@@ -65,48 +134,5 @@ else
     mode="colorful"
 fi
 
-# Poner el wallpaper.
-pkill -x swaybg 2>/dev/null || true
-sleep 0.2
-setsid swaybg -i "$image" -m fill >/dev/null 2>&1 &
-disown
-
-# Generar la paleta desde la imagen (headless, sin abrir la GUI de aether).
 aether --generate "$image" --extract-mode "$mode" --no-apply --output "$CURRENT_DIR"
-
-ln -sfn "$image" "$CURRENT_DIR/wallpaper"
-echo "$mode" > "$MODE_STATE_FILE"
-
-# Generar waybar.css / walker.css / mako a partir de colors.toml.
-"$HOME/dotfiles/bin/chocomazapan-apply-theme"
-
-# Recargar apps para que tomen el nuevo tema.
-if pidof waybar >/dev/null; then
-    pkill -x waybar 2>/dev/null || true
-    sleep 0.2
-    setsid uwsm-app -- waybar >/dev/null 2>&1 &
-    disown
-fi
-
-if pidof mako >/dev/null; then
-    makoctl reload >/dev/null 2>&1 || true
-fi
-
-if pidof walker >/dev/null; then
-    pkill -x walker 2>/dev/null || true
-    sleep 0.2
-    setsid uwsm-app -- env GSK_RENDERER=cairo walker --gapplication-service >/dev/null 2>&1 &
-    disown
-fi
-
-if pidof swayosd-server >/dev/null; then
-    "$HOME/dotfiles/bin/chocomazapan-restart-swayosd" >/dev/null 2>&1 || true
-fi
-
-"$HOME/dotfiles/bin/chocomazapan-theme-set-browser" >/dev/null 2>&1 || true
-"$HOME/dotfiles/bin/chocomazapan-rgb-sync" >/dev/null 2>&1 || true
-"$HOME/dotfiles/bin/chocomazapan-obsidian-sync" >/dev/null 2>&1 || true
-"$HOME/dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true
-
-echo "Wallpaper: $(basename "$image")"
-echo "Modo: $mode"
+sync_desktop "$image" "$mode"
