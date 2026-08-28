@@ -2,8 +2,23 @@
 -- specific values without needing to repeat all of them here.
 -- Refer to https://wiki.hypr.land/Configuring/Basics/Variables/
 
-local active_border_color = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 }
-local inactive_border_color = "rgba(595959aa)"
+-- Bordes dinámicos: leídos de theming/current/hyprland-colors.lua (generado
+-- por chocomazapan-apply-theme en cada cambio de wallpaper). dofile (no
+-- require) para que se relea siempre, sin caché de módulo entre reloads.
+-- Si el archivo aún no existe (primer arranque antes de cualquier
+-- chocomazapan-wallpaper-set), cae a los colores fijos originales.
+local function strip_hash(hex)
+  return (hex:gsub("^#", ""))
+end
+
+local hyprland_colors_path = (os.getenv("HOME") or "") .. "/dotfiles/theming/current/hyprland-colors.lua"
+local ok, theme_colors = pcall(dofile, hyprland_colors_path)
+if not ok or type(theme_colors) ~= "table" then
+  theme_colors = { active = "#33ccff", inactive = "#595959" }
+end
+
+local active_border_color = "rgba(" .. strip_hash(theme_colors.active) .. "ee)"
+local inactive_border_color = "rgba(" .. strip_hash(theme_colors.inactive) .. "aa)"
 
 hl.config({
   general = {

@@ -58,6 +58,10 @@ sync_desktop() {
 
     "$HOME/dotfiles/bin/chocomazapan-apply-theme"
 
+    # Recarga Hyprland para que tome los bordes de ventana nuevos
+    # (theming/current/hyprland-colors.lua).
+    hyprctl reload >/dev/null 2>&1 || true
+
     if pidof waybar >/dev/null; then
         pkill -x waybar 2>/dev/null || true
         sleep 0.2
@@ -92,13 +96,20 @@ sync_desktop() {
 if [ -z "$image_arg" ]; then
     # Interactivo: chocomazapan-menu-images (carrusel QuickShell). Bloquea
     # hasta que el usuario aplica una imagen (Return / click) o cancela
-    # (Esc / click fuera) — navegar solo no dispara nada.
+    # (Esc / click fuera) — navegar solo no dispara nada. Dentro del
+    # selector: R = saltar a una imagen al azar (sin aplicar todavía),
+    # M / Shift+M = cambiar el modo de extracción de aether.
+    current_mode="colorful"
+    [ -f "$MODE_STATE_FILE" ] && current_mode="$(cat "$MODE_STATE_FILE")"
+
     selection="$(chocomazapan-menu-images \
         --selected "$CURRENT_DIR/wallpaper" \
+        --mode "$current_mode" \
         --colors-file "$CURRENT_DIR/quickshell-colors.json" \
         "$WALLPAPER_DIR")"
     [ -n "$selection" ] || exit 0
-    image_arg="$selection"
+    image_arg="${selection%%$'\t'*}"
+    mode_arg="${selection#*$'\t'}"
 fi
 
 # Headless: resolver imagen.

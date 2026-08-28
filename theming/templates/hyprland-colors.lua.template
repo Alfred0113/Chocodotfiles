@@ -1,0 +1,4 @@
+return {
+  active = "{{accent}}",
+  inactive = "{{color8}}",
+}

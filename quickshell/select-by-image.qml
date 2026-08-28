@@ -35,6 +35,13 @@ ShellRoot {
   property int sliceSpacing: -30
   property int skewOffset: 28
   property int bottomChromeHeight: showLabels ? (filterable ? 104 : 74) : (filterable ? 60 : 30)
+  property var extractModes: ["colorful", "normal", "pastel", "material", "muted", "bright", "fire", "ocean", "forest", "neon", "sunset", "vaporwave", "midnight", "aurora", "earthtone", "complementary", "triadic", "split-complementary", "tetradic", "high-contrast", "duotone", "monochromatic", "analogous"]
+  property int modeIndex: 0
+
+  function setMode(mode) {
+    var idx = root.extractModes.indexOf(mode)
+    root.modeIndex = idx >= 0 ? idx : 0
+  }
 
   function fileUrl(path) {
     return "file://" + path.split("/").map(encodeURIComponent).join("/")
@@ -178,7 +185,8 @@ ShellRoot {
     selectionFile = ""
     doneFile = ""
 
-    applyProc.command = ["bash", "-lc", "printf '%s\\n' " + shellQuote(path) + " > " + shellQuote(activeSelectionFile) + "; : > " + shellQuote(activeDoneFile)]
+    var mode = root.extractModes[root.modeIndex]
+    applyProc.command = ["bash", "-lc", "printf '%s\\t%s\\n' " + shellQuote(path) + " " + shellQuote(mode) + " > " + shellQuote(activeSelectionFile) + "; : > " + shellQuote(activeDoneFile)]
     applyProc.running = true
   }
 
@@ -236,7 +244,7 @@ ShellRoot {
     carousel.forceActiveFocus()
   }
 
-  function openSelector(nextImageDirs, nextImageRows, nextSelectedImage, nextSelectionFile, nextDoneFile, nextColorsFile, nextColorsRaw, nextShowLabels, nextFilterable) {
+  function openSelector(nextImageDirs, nextImageRows, nextSelectedImage, nextSelectionFile, nextDoneFile, nextColorsFile, nextColorsRaw, nextShowLabels, nextFilterable, nextMode) {
     if (requestActive && doneFile && doneFile !== nextDoneFile)
       finishDoneFile(doneFile)
 
@@ -254,6 +262,7 @@ ShellRoot {
     colorsFile = nextColorsFile || (Quickshell.env("HOME") + "/.config/chocomazapan/quickshell-colors.json")
     if (nextColorsRaw)
       loadColors(nextColorsRaw)
+    root.setMode(nextMode || Quickshell.env("CHOCOMAZAPAN_IMAGE_SELECTOR_MODE") || "colorful")
     imageArray = []
     selectedIndex = 0
     imagesLoaded = false
@@ -293,14 +302,14 @@ ShellRoot {
 
   Component.onCompleted: {
     if (selectionFile)
-      openSelector(imageDirs, "", selectedImage, selectionFile, Quickshell.env("CHOCOMAZAPAN_IMAGE_SELECTOR_DONE_FILE"), colorsFile, "", false, false)
+      openSelector(imageDirs, "", selectedImage, selectionFile, Quickshell.env("CHOCOMAZAPAN_IMAGE_SELECTOR_DONE_FILE"), colorsFile, "", false, false, "")
   }
 
   IpcHandler {
     target: "image-selector"
 
     function open(imageDirs: string, imageRows: string, selectedImage: string, selectionFile: string, doneFile: string, colorsFile: string): void {
-      root.openSelector(imageDirs, imageRows, selectedImage, selectionFile, doneFile, colorsFile, "", false, false)
+      root.openSelector(imageDirs, imageRows, selectedImage, selectionFile, doneFile, colorsFile, "", false, false, "")
     }
   }
 
@@ -319,7 +328,7 @@ ShellRoot {
             return
           }
 
-          root.openSelector("", root.decodeField(fields[0]), fields[1] || "", fields[2] || "", fields[3] || "", "", root.decodeField(fields[4]), fields[5] || "false", fields[6] || "false")
+          root.openSelector("", root.decodeField(fields[0]), fields[1] || "", fields[2] || "", fields[3] || "", "", root.decodeField(fields[4]), fields[5] || "false", fields[6] || "false", fields[7] || "")
           clientSocket.connected = false
         }
       }
@@ -383,6 +392,20 @@ ShellRoot {
 
       MouseArea { anchors.fill: parent; onClicked: {} }
 
+      Text {
+        id: modeIndicator
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 4
+        text: root.extractModes[root.modeIndex] + "  ·  M cambia modo  ·  R aleatorio"
+        color: root.foreground
+        opacity: 0.75
+        style: Text.Outline
+        styleColor: root.withAlpha(root.background, 0.7)
+        font.pixelSize: 13
+        horizontalAlignment: Text.AlignRight
+      }
+
       Item {
         id: carousel
         anchors.top: parent.top
@@ -418,6 +441,25 @@ ShellRoot {
             event.accepted = true
           } else if (event.key === Qt.Key_Right || event.key === Qt.Key_Tab) {
             root.selectAdjacent(1)
+            event.accepted = true
+          } else if (event.key === Qt.Key_R && event.modifiers === Qt.NoModifier) {
+            var matchCount = root.matchingCount()
+            if (matchCount > 0) {
+              var target = Math.floor(Math.random() * matchCount)
+              var seen = -1
+              for (var ri = 0; ri < root.imageArray.length; ri++) {
+                if (root.itemMatches(ri)) {
+                  seen++
+                  if (seen === target) { root.select(ri); break }
+                }
+              }
+            }
+            event.accepted = true
+          } else if (event.key === Qt.Key_M && (event.modifiers & Qt.ShiftModifier)) {
+            root.modeIndex = (root.modeIndex - 1 + root.extractModes.length) % root.extractModes.length
+            event.accepted = true
+          } else if (event.key === Qt.Key_M && event.modifiers === Qt.NoModifier) {
+            root.modeIndex = (root.modeIndex + 1) % root.extractModes.length
             event.accepted = true
           } else if (root.filterable && event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32 && event.text.charCodeAt(0) !== 127 && (event.modifiers === Qt.NoModifier || event.modifiers === Qt.ShiftModifier)) {
             root.updateFilter(root.filterText + event.text)

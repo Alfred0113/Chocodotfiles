@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # meta:summary=Carousel image selector (QuickShell), used by chocomazapan-wallpaper-set
-# meta:args=[--selected <image>] [--colors-file <path>] [--print-name] [--show-labels] [--filterable] [--lazy-thumbnails] [--cache-only] <image-dir>...
+# meta:args=[--selected <image>] [--mode <extract-mode>] [--colors-file <path>] [--print-name] [--show-labels] [--filterable] [--lazy-thumbnails] [--cache-only] <image-dir>...
 
 selected_image=""
+mode=""
 colors_file=""
 print_name=false
 show_labels=false
@@ -14,7 +15,7 @@ cache_only=false
 image_dirs=()
 
 usage() {
-  echo "Usage: chocomazapan-menu-images [--selected <image>] [--colors-file <path>] [--print-name] [--show-labels] [--filterable] [--lazy-thumbnails] [--cache-only] <image-dir>..."
+  echo "Usage: chocomazapan-menu-images [--selected <image>] [--mode <extract-mode>] [--colors-file <path>] [--print-name] [--show-labels] [--filterable] [--lazy-thumbnails] [--cache-only] <image-dir>..."
 }
 
 while [[ $# -gt 0 ]]; do
@@ -26,6 +27,15 @@ while [[ $# -gt 0 ]]; do
       fi
 
       selected_image="$2"
+      shift 2
+      ;;
+    --mode)
+      if (( $# < 2 )); then
+        usage >&2
+        exit 1
+      fi
+
+      mode="$2"
       shift 2
       ;;
     --colors-file)
@@ -250,7 +260,7 @@ ensure_selector() {
 }
 
 send_request() {
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$rows_payload" "$selected_list_image" "$selection_file" "$done_file" "$colors_payload" "$show_labels" "$filterable" |
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$rows_payload" "$selected_list_image" "$selection_file" "$done_file" "$colors_payload" "$show_labels" "$filterable" "$mode" |
     socat -u - "UNIX-CONNECT:$socket_path"
 }
 
@@ -275,6 +285,7 @@ done
 if [[ -s $selection_file ]]; then
   if [[ $print_name == true ]]; then
     selection=$(<"$selection_file")
+    selection=${selection%%$'\t'*}
     selection=${selection##*/}
     printf '%s\n' "${selection%.*}"
   else
