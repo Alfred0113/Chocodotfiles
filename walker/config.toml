@@ -43,6 +43,12 @@ provider = "websearch"
 prefix = "$"
 provider = "clipboard"
 
+[providers.actions]
+wallpapers = [
+  { action = "set_matugen", label = "usar matugen", default = true, bind = "Return" },
+  { action = "set_wallust", label = "usar wallust", bind = "ctrl Return" },
+]
+
 [[emergencies]]
 text = "Restart Walker"
 command = "chocomazapan-restart-walker"

@@ -4,7 +4,8 @@
 # matugen o wallust.
 #
 # Uso:
-#   chocomazapan-wallpaper-set                       -> selector interactivo (imagen + motor)
+#   chocomazapan-wallpaper-set                       -> selector interactivo con miniaturas
+#                                                        (Return = matugen, Ctrl+Return = wallust)
 #   chocomazapan-wallpaper-set random [motor]         -> imagen al azar
 #   chocomazapan-wallpaper-set <archivo|nombre> [motor]
 
@@ -27,42 +28,24 @@ pick_random_image() {
     list_images | shuf -n1
 }
 
-pick_image_interactive() {
-    local choice
-    choice=$(
-        {
-            echo "🎲 Aleatorio"
-            list_images | xargs -d '\n' -n1 basename
-        } | walker -d -p "Elige wallpaper"
-    )
-    [ -n "$choice" ] || exit 1
-    if [ "$choice" = "🎲 Aleatorio" ]; then
-        pick_random_image
-    else
-        echo "$WALLPAPER_DIR/$choice"
-    fi
-}
-
-pick_engine_interactive() {
-    local choice
-    choice=$(printf 'matugen\nwallust\n' | walker -d -p "Motor de color (matugen/wallust)")
-    [ -n "$choice" ] || exit 1
-    echo "$choice"
-}
+# Sin argumentos: delega en el menú "wallpapers" de Walker (elephant-menus,
+# ~/dotfiles/walker/menus/wallpapers.lua), que muestra miniatura real por
+# imagen y preview grande. Return -> matugen, Ctrl+Return -> wallust. Cada
+# entrada llama de vuelta a este mismo script con imagen+motor explícitos
+# (rama no interactiva de abajo), así que aquí solo hace falta abrir el menú.
+if [ -z "$image_arg" ]; then
+    walker -m menus:wallpapers -p "Elige wallpaper"
+    exit 0
+fi
 
 # Resolver imagen.
 if [ "$image_arg" = "random" ] || [ "$image_arg" = "--random" ]; then
     image="$(pick_random_image)"
-elif [ -n "$image_arg" ]; then
+else
     if [ -f "$image_arg" ]; then
         image="$image_arg"
     else
         image="$WALLPAPER_DIR/$image_arg"
-    fi
-else
-    image="$(pick_image_interactive)"
-    if [ -z "$engine_arg" ]; then
-        engine_arg="$(pick_engine_interactive)"
     fi
 fi
 
