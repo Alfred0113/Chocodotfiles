@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# meta:summary=Launch a floating terminal with the ChocoMazapan presentation wrapper
+# meta:args=<command>
+
+cmd="$*"
+exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.chocomazapan.terminal --title=ChocoMazapan -e bash -c "chocomazapan-show-logo; $cmd; if (( \$? != 130 )); then chocomazapan-show-done; fi"

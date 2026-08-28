@@ -4,7 +4,7 @@ hl.config({
   input = {
     kb_layout = "latam",
 
-    kb_options = "", -- overrides Omarchy default's compose:caps so Caps Lock behaves normally
+    kb_options = "", -- overrides the default compose:caps so Caps Lock behaves normally
 
     -- Change speed of keyboard repeat.
     repeat_rate = 40,

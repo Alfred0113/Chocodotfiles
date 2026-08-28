@@ -43,7 +43,7 @@ require("default.hypr.toggles")
 -- hl.window_rule({ match = { class = "qemu" }, workspace = "5" })
 
 -- Save screenshots to a dedicated subfolder instead of ~/Imágenes.
-hl.env("OMARCHY_SCREENSHOT_DIR", home .. "/Imágenes/Screenshots")
+hl.env("CHOCOMAZAPAN_SCREENSHOT_DIR", home .. "/Imágenes/Screenshots")
 
 -- Force Steam games to launch on the primary gaming monitor (DP-2, 240Hz).
 hl.window_rule({ match = { class = "steam_app_.*" }, monitor = "DP-2" })

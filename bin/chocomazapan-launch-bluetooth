@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# meta:summary=Launch the ChocoMazapan bluetooth controls TUI (provided by bluetui).
+
+rfkill unblock bluetooth
+exec chocomazapan-launch-or-focus-tui bluetui

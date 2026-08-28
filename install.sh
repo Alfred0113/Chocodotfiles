@@ -16,6 +16,7 @@ LINKED_DIRS=(
     "waybar:waybar"
     "mako:mako"
     "walker:walker"
+    "uwsm:uwsm"
     "theming:theming"
     "theming/engines/matugen:matugen"
     "theming/engines/wallust:wallust"

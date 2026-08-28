@@ -45,4 +45,4 @@ provider = "clipboard"
 
 [[emergencies]]
 text = "Restart Walker"
-command = "omarchy-restart-walker"
+command = "chocomazapan-restart-walker"

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# meta:summary=Launch the ChocoMazapan audio controls TUI (provided by wiremix).
+
+chocomazapan-launch-or-focus-tui wiremix

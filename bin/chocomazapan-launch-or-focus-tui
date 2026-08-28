@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# meta:summary=Launch a TUI or focus an existing terminal window for it
+# meta:args=<command> [args...]
+
+APP_ID="org.chocomazapan.$(basename "$1")"
+LAUNCH_COMMAND="chocomazapan-launch-tui $@"
+
+exec chocomazapan-launch-or-focus "$APP_ID" "$LAUNCH_COMMAND"

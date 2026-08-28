@@ -1,4 +1,4 @@
--- Change the default Omarchy look'n'feel.
+-- Look'n'feel overrides.
 
 hl.config({
   decoration = {

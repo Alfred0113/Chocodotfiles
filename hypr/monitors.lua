@@ -1,27 +1,27 @@
 -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
 -- List current monitors and resolutions possible: hyprctl monitors all
 
-local omarchy_gdk_scale = 1
-local omarchy_monitor_scale = 1
+local gdk_scale = 1
+local monitor_scale = 1
 
 -- Optimized for retina-class 2x displays, like 13" 2.8K, 27" 5K, 32" 6K.
--- local omarchy_gdk_scale = 2
--- local omarchy_monitor_scale = "auto"
+-- local gdk_scale = 2
+-- local monitor_scale = "auto"
 
 -- Good compromise for 27" or 32" 4K monitors (but fractional!): monitor scale 1.6, GDK scale 1.75.
--- local omarchy_gdk_scale = 1.75
--- local omarchy_monitor_scale = 1.6
+-- local gdk_scale = 1.75
+-- local monitor_scale = 1.6
 
 -- Straight 1x setup for low-resolution displays like 1080p, 1440p, or ultrawides: both 1.
--- local omarchy_gdk_scale = 1
--- local omarchy_monitor_scale = 1
+-- local gdk_scale = 1
+-- local monitor_scale = 1
 
-hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
+hl.env("GDK_SCALE", tostring(gdk_scale))
 
 -- LG ULTRAGEAR 240Hz (izquierda física)
-hl.monitor({ output = "DP-2", mode = "1920x1080@240",   position = "0x0",          scale = omarchy_monitor_scale })
+hl.monitor({ output = "DP-2", mode = "1920x1080@240",   position = "0x0",          scale = monitor_scale })
 -- LG FHD 75Hz (derecha física)
-hl.monitor({ output = "DP-1", mode = "1920x1080@74.97", position = "1920x0", scale = omarchy_monitor_scale })
+hl.monitor({ output = "DP-1", mode = "1920x1080@74.97", position = "1920x0", scale = monitor_scale })
 
 -- Portrait/rotated secondary monitor (transform: 1 = 90°, 3 = 270°)
 -- hl.monitor({ output = "DP-2", mode = "preferred", position = "auto", scale = 1, transform = 1 })

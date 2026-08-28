@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# meta:summary=Open Voxtype AI model setup
+
+set -e
+
+chocomazapan-launch-floating-terminal-with-presentation "voxtype setup model"
+chocomazapan-restart-waybar

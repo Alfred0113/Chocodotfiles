@@ -1,0 +1,21 @@
+# Changes require a restart to take effect.
+
+# Ensure ChocoMazapan (own dotfiles) bins are in the path. OMARCHY_PATH is
+# still needed while Omarchy stays installed (Hyprland's Lua config loader
+# reads modules from it) — remove once Omarchy is fully retired.
+export OMARCHY_PATH=$HOME/.local/share/omarchy
+export PATH=$HOME/dotfiles/bin:$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin
+
+# Set default terminal and editor
+source ~/.config/uwsm/default
+
+# Activate mise if present on the system
+chocomazapan-cmd-present mise && eval "$(mise activate bash --shims)"
+
+# NVIDIA
+export LIBVA_DRIVER_NAME=nvidia
+export GBM_BACKEND=nvidia-drm
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export NVD_BACKEND=direct
+export MOZ_DISABLE_RDD_SANDBOX=1
+export CUDA_DISABLE_PERF_BOOST=1

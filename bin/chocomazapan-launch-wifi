@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# meta:summary=Launch the ChocoMazapan wifi controls (provided by the Impala TUI).
+
+rfkill unblock wifi
+chocomazapan-launch-or-focus-tui impala
