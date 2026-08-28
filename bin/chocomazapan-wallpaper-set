@@ -133,6 +133,7 @@ fi
 "$HOME/dotfiles/bin/chocomazapan-theme-set-browser" >/dev/null 2>&1 || true
 "$HOME/dotfiles/bin/chocomazapan-rgb-sync" >/dev/null 2>&1 || true
 "$HOME/dotfiles/bin/chocomazapan-obsidian-sync" >/dev/null 2>&1 || true
+"$HOME/dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true
 
 echo "Wallpaper: $(basename "$image")"
 echo "Motor: $engine"

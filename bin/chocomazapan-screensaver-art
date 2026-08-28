@@ -1,0 +1,37 @@
+#!/bin/bash
+# Regenerates the screensaver ANSI art ("ChocoMazapan" text) from the current
+# theme's colors, so the background is solid and matches the theme instead of
+# a fixed color or a transparency-threshold render (which looked speckled).
+
+set -euo pipefail
+
+COLORS_FILE="$HOME/dotfiles/theming/current/colors.toml"
+OUT_TXT="$HOME/dotfiles/theming/current/screensaver.txt"
+FONT="/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Bold.ttf"
+
+[[ -f $COLORS_FILE ]] || exit 0
+
+get_color() {
+    grep -m1 "^$1 " "$COLORS_FILE" | sed -E 's/.*"(#[0-9a-fA-F]{6})".*/\1/'
+}
+
+bg="$(get_color background)"
+fg="$(get_color foreground)"
+accent="$(get_color accent)"
+[[ $bg =~ ^#[0-9a-fA-F]{6}$ ]] || bg="#000000"
+[[ $fg =~ ^#[0-9a-fA-F]{6}$ ]] || fg="#ffffff"
+[[ $accent =~ ^#[0-9a-fA-F]{6}$ ]] || accent="#7C3AED"
+
+W=1400
+H=350
+tmp_dir="$(mktemp -d)"
+trap 'rm -rf "$tmp_dir"' EXIT
+
+magick -size "${W}x${H}" "xc:$bg" "$tmp_dir/base.png"
+magick -size "${W}x${H}" gradient:"$accent-$fg" "$tmp_dir/grad.png"
+magick -size "${W}x${H}" xc:black -gravity center -font "$FONT" -pointsize 120 \
+    -fill white -annotate +0+0 "ChocoMazapan" "$tmp_dir/mask.png"
+magick "$tmp_dir/grad.png" "$tmp_dir/mask.png" -compose CopyOpacity -composite "$tmp_dir/text.png"
+magick "$tmp_dir/base.png" "$tmp_dir/text.png" -compose Over -composite "$tmp_dir/final.png"
+
+chafa -f symbols -c full --size=120x30 "$tmp_dir/final.png" > "$OUT_TXT"

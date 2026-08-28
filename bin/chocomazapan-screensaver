@@ -24,7 +24,9 @@ hyprctl eval 'hl.config({ cursor = { invisible = true } })' &>/dev/null || hyprc
 tty=$(tty 2>/dev/null)
 
 while true; do
-  tte -i "$HOME/dotfiles/bin/assets/screensaver.txt" \
+  art="$HOME/dotfiles/theming/current/screensaver.txt"
+  [[ -f $art ]] || art="$HOME/dotfiles/bin/assets/screensaver.txt"
+  tte -i "$art" \
     --frame-rate 120 --canvas-width 0 --canvas-height 0 --reuse-canvas --anchor-canvas c --anchor-text c \
     --existing-color-handling always \
     --random-effect --no-eol --no-restore-cursor &
