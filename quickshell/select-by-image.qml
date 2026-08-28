@@ -37,10 +37,44 @@ ShellRoot {
   property int bottomChromeHeight: showLabels ? (filterable ? 104 : 74) : (filterable ? 60 : 30)
   property var extractModes: ["colorful", "normal", "pastel", "material", "muted", "bright", "fire", "ocean", "forest", "neon", "sunset", "vaporwave", "midnight", "aurora", "earthtone", "complementary", "triadic", "split-complementary", "tetradic", "high-contrast", "duotone", "monochromatic", "analogous"]
   property int modeIndex: 0
+  property var previewPalette: []
 
   function setMode(mode) {
     var idx = root.extractModes.indexOf(mode)
     root.modeIndex = idx >= 0 ? idx : 0
+  }
+
+  function refreshPreviewPalette() {
+    var path = root.currentPath()
+    if (!path) {
+      root.previewPalette = []
+      return
+    }
+
+    paletteProc.output = ""
+    paletteProc.command = ["bash", "-lc", "aether --extract-palette " + shellQuote(path) + " --extract-mode " + shellQuote(root.extractModes[root.modeIndex]) + " --json 2>/dev/null"]
+    paletteProc.running = true
+  }
+
+  onSelectedIndexChanged: root.refreshPreviewPalette()
+  onModeIndexChanged: root.refreshPreviewPalette()
+
+  Process {
+    id: paletteProc
+    property string output: ""
+    stdout: SplitParser {
+      onRead: function(data) {
+        paletteProc.output += data
+      }
+    }
+    onExited: {
+      try {
+        var parsed = JSON.parse(paletteProc.output)
+        root.previewPalette = parsed.colors || []
+      } catch (e) {
+        root.previewPalette = []
+      }
+    }
   }
 
   function fileUrl(path) {
@@ -241,6 +275,7 @@ ShellRoot {
     root.select(root.selectedImageIndex(), true)
     root.imagesLoaded = true
     root.opened = true
+    root.refreshPreviewPalette()
     carousel.forceActiveFocus()
   }
 
@@ -387,7 +422,7 @@ ShellRoot {
     Item {
       id: card
       width: Math.min(parent.width - 80, root.expandedWidth + 13 * (root.sliceWidth + root.sliceSpacing) + 40)
-      height: root.expandedHeight + 30 + root.bottomChromeHeight
+      height: root.expandedHeight + 52 + root.bottomChromeHeight
       anchors.centerIn: parent
 
       MouseArea { anchors.fill: parent; onClicked: {} }
@@ -399,17 +434,40 @@ ShellRoot {
         anchors.topMargin: 4
         text: root.extractModes[root.modeIndex] + "  ·  M cambia modo  ·  R aleatorio"
         color: root.foreground
-        opacity: 0.75
+        opacity: 0.85
         style: Text.Outline
         styleColor: root.withAlpha(root.background, 0.7)
-        font.pixelSize: 13
+        font.pixelSize: 18
+        font.weight: Font.DemiBold
         horizontalAlignment: Text.AlignRight
+      }
+
+      Row {
+        id: paletteDots
+        anchors.top: modeIndicator.bottom
+        anchors.right: parent.right
+        anchors.topMargin: 6
+        spacing: 5
+
+        Repeater {
+          model: Math.max(root.previewPalette.length - 1, 0)
+
+          delegate: Rectangle {
+            required property int index
+            width: 16
+            height: 16
+            radius: 8
+            color: root.previewPalette[index + 1] || "transparent"
+            border.width: 1
+            border.color: root.withAlpha(root.background, 0.6)
+          }
+        }
       }
 
       Item {
         id: carousel
         anchors.top: parent.top
-        anchors.topMargin: 30
+        anchors.topMargin: 52
         anchors.bottom: parent.bottom
         anchors.bottomMargin: root.bottomChromeHeight
         anchors.horizontalCenter: parent.horizontalCenter
