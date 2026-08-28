@@ -31,8 +31,8 @@ function GetEntries()
     Text = "Aleatorio",
     Value = "random",
     Actions = {
-      set_matugen = "chocomazapan-wallpaper-set random matugen",
-      set_wallust = "chocomazapan-wallpaper-set random wallust",
+      set_colorful = "chocomazapan-wallpaper-set random colorful",
+      set_normal = "chocomazapan-wallpaper-set random normal",
     },
   })
 
@@ -51,8 +51,8 @@ function GetEntries()
           Preview = background,
           PreviewType = "file",
           Actions = {
-            set_matugen = "chocomazapan-wallpaper-set " .. ShellEscape(background) .. " matugen",
-            set_wallust = "chocomazapan-wallpaper-set " .. ShellEscape(background) .. " wallust",
+            set_colorful = "chocomazapan-wallpaper-set " .. ShellEscape(background) .. " colorful",
+            set_normal = "chocomazapan-wallpaper-set " .. ShellEscape(background) .. " normal",
           },
         })
       end

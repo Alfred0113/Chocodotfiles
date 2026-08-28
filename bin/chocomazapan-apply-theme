@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera los archivos de tema por app a partir de theming/current/colors.toml.
 
-Lee ~/dotfiles/theming/current/colors.toml (generado por matugen o wallust)
+Lee ~/dotfiles/theming/current/colors.toml (generado por aether --generate)
 y sustituye {{clave}} en cada plantilla de ~/dotfiles/theming/templates/,
 escribiendo el resultado en ~/dotfiles/theming/current/<nombre-sin-.template>.
 """

@@ -21,7 +21,7 @@ git clone <este repo> ~/dotfiles
 - `mako/` → `~/.config/mako`
 - `walker/` → `~/.config/walker` — incluye `menus/wallpapers.lua`, el menú con miniaturas reales para elegir wallpaper (proveedor `elephant-menus`; requiere `~/.config/elephant/menus.toml` con `paths = ["~/dotfiles/walker/menus"]`, ese archivo vive fuera del repo igual que el resto de configs sueltas de `elephant`)
 - `theming/` → `~/.config/theming` — sistema de tema dinámico:
-  - `engines/{matugen,wallust}/` → `~/.config/{matugen,wallust}` — configs de los dos motores de extracción de color
+  - `engines/{matugen,wallust}/` → `~/.config/{matugen,wallust}` — configs de los motores de extracción usados hasta antes de adoptar `aether`; ya no están wireados a nada, quedan como referencia
   - `templates/` → plantillas propias (waybar.css, mako, walker.css, vencord-quickcss.css) que leen `current/colors.toml`
   - `current/` → estado generado (no versionado): paleta activa + assets derivados
   - `themes/aether/` → paleta estática vendorizada de referencia, ya no es el mecanismo activo
@@ -33,7 +33,7 @@ git clone <este repo> ~/dotfiles
 
 ## Theming dinámico
 
-`chocomazapan-wallpaper-set` es el comando central: sin argumentos abre el menú de Walker con miniatura real por wallpaper (Return = matugen, Ctrl+Return = wallust); con argumentos (`random [motor]` o `<archivo> [motor]`) aplica directo. Aplica el wallpaper con `swaybg`, corre el motor de extracción de color elegido y genera `theming/current/colors.toml`. `chocomazapan-apply-theme` (Python) toma ese `colors.toml` y renderiza las plantillas de `theming/templates/` hacia `theming/current/`: waybar, mako, walker, Alacritty, SwayOSD, Neovim (vía `bjarneo/aether.nvim`), Vencord/Discord, Chromium, Obsidian y RGB (OpenRGB, RAM/GPU/fans ARGB de la board). Todo esto corre automático en cada cambio de wallpaper, salvo Obsidian que solo corre cuando se le pide.
+`chocomazapan-wallpaper-set` es el comando central: sin argumentos abre el menú de Walker con preview real por wallpaper (Return = modo "colorful", Ctrl+Return = modo "normal"); con argumentos (`random [modo]` o `<archivo> [modo]`) aplica directo, donde `[modo]` es uno de `aether --list-modes`. Aplica el wallpaper con `swaybg` y corre `aether --generate <imagen> --extract-mode <modo> --no-apply --output theming/current` — headless, nunca abre la GUI de `aether` — para generar `theming/current/colors.toml`. `chocomazapan-apply-theme` (Python) toma ese `colors.toml` y renderiza las plantillas propias de `theming/templates/` hacia `theming/current/`: waybar, mako, walker, Alacritty, SwayOSD, Neovim (vía `bjarneo/aether.nvim`), Vencord/Discord, Chromium, Obsidian y RGB (OpenRGB, RAM/GPU/fans ARGB de la board) — sobrescribiendo los archivos que `aether` ya generó para esas mismas apps, ya que las plantillas propias tienen los selectores CSS/integraciones específicas de este setup. Todo esto corre automático en cada cambio de wallpaper, salvo Obsidian que solo corre cuando se le pide.
 
 El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en degradado accent→foreground sobre el fondo del tema activo, renderizado a arte ANSI con `chafa`.
 

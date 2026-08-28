@@ -1,24 +1,26 @@
 #!/bin/bash
 # Selecciona un wallpaper (de ~/Imágenes/Wallpapers), lo pone de fondo con
 # swaybg, y genera theming/current/colors.toml a partir de esa imagen usando
-# matugen o wallust.
+# aether (extracción headless, sin abrir su GUI).
 #
 # Uso:
 #   chocomazapan-wallpaper-set                       -> selector interactivo con miniaturas
-#                                                        (Return = matugen, Ctrl+Return = wallust)
-#   chocomazapan-wallpaper-set random [motor]         -> imagen al azar
-#   chocomazapan-wallpaper-set <archivo|nombre> [motor]
+#   chocomazapan-wallpaper-set random [modo]          -> imagen al azar
+#   chocomazapan-wallpaper-set <archivo|nombre> [modo]
+#
+# [modo] es un modo de extracción de aether (aether --list-modes). Por
+# defecto "colorful" (paleta vibrante en OKLCH).
 
 set -euo pipefail
 
 WALLPAPER_DIR="$HOME/Imágenes/Wallpapers"
 CURRENT_DIR="$HOME/dotfiles/theming/current"
-ENGINE_STATE_FILE="$CURRENT_DIR/engine"
+MODE_STATE_FILE="$CURRENT_DIR/extract-mode"
 
 mkdir -p "$CURRENT_DIR"
 
 image_arg="${1:-}"
-engine_arg="${2:-}"
+mode_arg="${2:-}"
 
 list_images() {
     find "$WALLPAPER_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \)
@@ -54,18 +56,13 @@ if [ ! -f "$image" ]; then
     exit 1
 fi
 
-# Resolver motor.
-if [ -n "$engine_arg" ]; then
-    engine="$engine_arg"
-elif [ -f "$ENGINE_STATE_FILE" ]; then
-    engine="$(cat "$ENGINE_STATE_FILE")"
+# Resolver modo de extracción.
+if [ -n "$mode_arg" ]; then
+    mode="$mode_arg"
+elif [ -f "$MODE_STATE_FILE" ]; then
+    mode="$(cat "$MODE_STATE_FILE")"
 else
-    engine="matugen"
-fi
-
-if [ "$engine" != "matugen" ] && [ "$engine" != "wallust" ]; then
-    echo "Motor inválido: $engine (usa matugen o wallust)" >&2
-    exit 1
+    mode="colorful"
 fi
 
 # Poner el wallpaper.
@@ -74,18 +71,11 @@ sleep 0.2
 setsid swaybg -i "$image" -m fill >/dev/null 2>&1 &
 disown
 
-# Generar la paleta desde la imagen.
-case "$engine" in
-    matugen)
-        matugen image "$image" --mode dark --prefer saturation
-        ;;
-    wallust)
-        wallust run "$image"
-        ;;
-esac
+# Generar la paleta desde la imagen (headless, sin abrir la GUI de aether).
+aether --generate "$image" --extract-mode "$mode" --no-apply --output "$CURRENT_DIR"
 
 ln -sfn "$image" "$CURRENT_DIR/wallpaper"
-echo "$engine" > "$ENGINE_STATE_FILE"
+echo "$mode" > "$MODE_STATE_FILE"
 
 # Generar waybar.css / walker.css / mako a partir de colors.toml.
 "$HOME/dotfiles/bin/chocomazapan-apply-theme"
@@ -119,4 +109,4 @@ fi
 "$HOME/dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true
 
 echo "Wallpaper: $(basename "$image")"
-echo "Motor: $engine"
+echo "Modo: $mode"
