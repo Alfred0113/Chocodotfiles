@@ -3,11 +3,12 @@
 # esa imagen usando aether (bjarneo/aether, headless — nunca abre su GUI).
 #
 # Uso:
-#   chocomazapan-wallpaper-set                        -> carrusel de imágenes (imv):
-#                                                         flechas para navegar, sin nombre
-#                                                         de archivo visible, Return aplica
-#                                                         la imagen actual y cierra. Navegar
-#                                                         solo no dispara nada.
+#   chocomazapan-wallpaper-set                        -> carrusel visual (QuickShell,
+#                                                         chocomazapan-menu-images): tarjetas
+#                                                         con miniatura real, la seleccionada
+#                                                         se expande al centro. Navegar (flechas)
+#                                                         no dispara nada; Return o click en la
+#                                                         tarjeta expandida aplica.
 #   chocomazapan-wallpaper-set random [modo]          -> headless, imagen al azar
 #   chocomazapan-wallpaper-set <archivo|nombre> [modo] -> headless
 #
@@ -89,19 +90,15 @@ sync_desktop() {
 }
 
 if [ -z "$image_arg" ]; then
-    # Interactivo: carrusel de imágenes con imv. Navegar (flechas) no hace
-    # nada más que mostrar la imagen — sin overlay, sin nombre de archivo.
-    # Return llama de vuelta a este mismo script (rama headless de abajo,
-    # en background) con la imagen actual y cierra el visor.
-    mapfile -t images < <(list_images | sort)
-    if [ "${#images[@]}" -eq 0 ]; then
-        echo "No hay wallpapers en $WALLPAPER_DIR" >&2
-        exit 1
-    fi
-
-    exec imv -f -w "Wallpapers" \
-        -c 'bind <Return> = exec setsid uwsm-app -- chocomazapan-wallpaper-set "$imv_current_file" >/tmp/chocomazapan-wallpaper-set.log 2>&1 & ; quit' \
-        "${images[@]}"
+    # Interactivo: chocomazapan-menu-images (carrusel QuickShell). Bloquea
+    # hasta que el usuario aplica una imagen (Return / click) o cancela
+    # (Esc / click fuera) — navegar solo no dispara nada.
+    selection="$(chocomazapan-menu-images \
+        --selected "$CURRENT_DIR/wallpaper" \
+        --colors-file "$CURRENT_DIR/quickshell-colors.json" \
+        "$WALLPAPER_DIR")"
+    [ -n "$selection" ] || exit 0
+    image_arg="$selection"
 fi
 
 # Headless: resolver imagen.

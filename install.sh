@@ -75,7 +75,7 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
 done
 
 echo "Listo. Revisa que tus paquetes estén instalados:"
-echo "  hyprland waybar mako walker aether awww alacritty swayosd-server openrgb chafa tte imagemagick"
+echo "  hyprland waybar mako walker aether awww alacritty swayosd-server openrgb chafa tte imagemagick quickshell socat"
 echo "Falta copiar tus wallpapers a ~/Imágenes/Wallpapers/ (no viaja en este repo)."
 echo "Corre 'systemctl --user daemon-reload && systemctl --user enable --now chocomazapan-battery-monitor.timer' para activar el monitor de batería."
 echo "Vencord: instala 'vencord-installer-git' (AUR) y corre 'vencordinstallercli -install -branch stable' antes de abrir Discord."

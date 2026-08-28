@@ -22,7 +22,7 @@ git clone <este repo> ~/dotfiles
 - `walker/` → `~/.config/walker`
 - `theming/` → `~/.config/theming` — sistema de tema dinámico:
   - `engines/{matugen,wallust}/` → `~/.config/{matugen,wallust}` — configs de los motores de extracción usados hasta antes de adoptar `aether`; ya no están wireados a nada, quedan como referencia
-  - `templates/` → plantillas propias (waybar.css, mako, walker.css, vencord-quickcss.css) que leen `current/colors.toml`
+  - `templates/` → plantillas propias (waybar.css, mako, walker.css, vencord-quickcss.css, quickshell-colors.json) que leen `current/colors.toml`
   - `current/` → estado generado (no versionado): paleta activa + assets derivados
   - `themes/aether/` → paleta estática vendorizada de referencia, ya no es el mecanismo activo
 - `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
@@ -30,12 +30,13 @@ git clone <este repo> ~/dotfiles
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
 - `swayosd/` → `~/.config/swayosd`
+- `quickshell/select-by-image.qml` — el selector visual de wallpaper (carrusel de tarjetas, ver abajo). No se symlinkea a ningún `~/.config`; `chocomazapan-menu-images` lo referencia directo por su ruta dentro del repo.
 
 ## Theming dinámico
 
 `chocomazapan-wallpaper-set` es el comando central, con dos modos:
 
-- **Sin argumentos**: abre un carrusel de imágenes con `imv` (163 wallpapers de `~/Imágenes/Wallpapers/`, sin overlay ni nombre de archivo visible — título de ventana fijo en "Wallpapers"). Las flechas navegan sin disparar nada; `Return` aplica la imagen actual (llama de vuelta a este mismo script en background, con la imagen resuelta) y cierra el visor. Se probaron dos alternativas antes de esta (un menú custom de Walker/elephant-menus, y la GUI real de `aether` con sincronización automática al detectar cambios) — ninguna dio el control explícito de "solo actuar en Enter" que se buscaba.
+- **Sin argumentos**: abre `chocomazapan-menu-images`, un carrusel visual real (QuickShell/QML: tarjetas con miniatura en perspectiva a los lados, la seleccionada se expande al centro con borde de acento) — puerto propio, renombrado y adaptado, de un componente que el usuario ya tenía funcionando en otra máquina (`quickshell/select-by-image.qml` + `bin/chocomazapan-menu-images`, comunicados por un socket Unix vía `socat`). Miniaturas cacheadas con ImageMagick (`~/.cache/wallpaper-selector/`, con lock por archivo para no regenerar en paralelo). Navegar (flechas/tab) no dispara nada; `Return` o click en la tarjeta expandida aplica esa imagen y cierra el selector. El propio selector toma su color de acento/fondo/texto de `theming/current/quickshell-colors.json` (una plantilla más, generada por `chocomazapan-apply-theme`), así que combina con el tema activo. Se probaron y descartaron tres alternativas antes de llegar a esta (un menú custom de Walker/elephant-menus, la GUI real de `aether` con sincronización automática al detectar cambios, y un carrusel con `imv`) — ninguna daba a la vez miniaturas reales, look de tarjetas, y control explícito de "solo actuar en Enter/click".
 - **Con argumentos** (`random [modo]` o `<archivo> [modo]`, `[modo]` es uno de `aether --list-modes`): headless, corre `aether --generate <imagen> --extract-mode <modo> --no-apply --output theming/current` — nunca abre ninguna GUI. Por defecto usa el modo `colorful`. Termina con una notificación de escritorio (`chocomazapan-notification-send`), útil porque esta rama suele correr en background sin consola visible.
 
 Una vez que `theming/current/colors.toml` está listo, `chocomazapan-apply-theme` (Python) renderiza las plantillas propias de `theming/templates/` hacia `theming/current/`: waybar, mako, walker, Alacritty, SwayOSD, Neovim (vía `bjarneo/aether.nvim`), Vencord/Discord, Chromium, Obsidian y RGB (OpenRGB, RAM/GPU/fans ARGB de la board) — necesario porque `aether` no toca esos configs (confirmado: no escribe fuera de su propio `~/.config/aether/`, y no soporta RGB/Obsidian/nuestro screensaver). Todo corre automático en cada cambio de wallpaper, salvo Obsidian que solo corre cuando se le pide.
