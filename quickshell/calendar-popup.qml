@@ -105,9 +105,12 @@ ShellRoot {
 
       ShapePath {
         id: outline
-        fillColor: root.withAlpha(root.background, 0.94)
-        strokeColor: root.withAlpha(root.accent, 0.55)
-        strokeWidth: 1.5
+        // Misma opacidad que la barra (waybar/style.css: alpha(@background,
+        // 0.3)), sin contorno — para que se sienta literal como parte de
+        // ella, no como un popup aparte con su propio borde.
+        fillColor: root.withAlpha(root.background, 0.3)
+        strokeColor: "transparent"
+        strokeWidth: 0
 
         readonly property real cx: root.width_ / 2
         readonly property real fw: root.flangeW

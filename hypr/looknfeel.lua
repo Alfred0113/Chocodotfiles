@@ -18,9 +18,11 @@ hl.config({
 -- Translucent, blurred waybar (macOS-style).
 hl.layer_rule({ match = { namespace = "waybar" }, blur = true, ignore_alpha = 0.2 })
 
--- Same blur treatment for menus (Walker launcher, Mako notifications).
+-- Same blur treatment for menus (Walker launcher, Mako notifications) and
+-- the calendar popup (should look like it's literally part of the bar).
 hl.layer_rule({ match = { namespace = "walker" }, blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = "notifications" }, blur = true, ignore_alpha = 0.2 })
+hl.layer_rule({ match = { namespace = "chocomazapan-calendar" }, blur = true, ignore_alpha = 0.2 })
 
 -- Reduce top gap to visually match waybar's margin-top/margin-bottom.
 hl.config({
