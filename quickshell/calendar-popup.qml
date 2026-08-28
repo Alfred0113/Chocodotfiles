@@ -13,7 +13,7 @@ ShellRoot {
 
   property int width_: 300
   property int rBottom: 18
-  property int rTop: 18
+  property int rTop: 40
   property int headerH: 44
   property int weekdayH: 26
   property int cellH: 34
