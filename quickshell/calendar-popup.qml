@@ -116,9 +116,9 @@ ShellRoot {
         readonly property real w: root.width_
         readonly property real h: root.totalH
 
-        // Sin cuello en medio: las dos esquinas de ARRIBA son cóncavas (se
-        // "pegan" a la barra ahí mismo), el borde de arriba entre ellas es
-        // recto. Abajo, esquinas normales convexas.
+        // Solo la esquina arriba-izquierda es cóncava (la más cercana al
+        // ícono, se "pega" a la barra ahí) — la de arriba-derecha es una
+        // esquina normal convexa, como las de abajo.
         startX: 0
         startY: rt
 
@@ -131,14 +131,14 @@ ShellRoot {
           direction: PathArc.Counterclockwise
         }
         // Borde de arriba, recto.
-        PathLine { x: outline.w - outline.rt; y: 0 }
-        // Filete cóncavo arriba-derecha.
+        PathLine { x: outline.w - outline.rb; y: 0 }
+        // Esquina arriba-derecha, convexa normal.
         PathArc {
           x: outline.w
-          y: outline.rt
-          radiusX: outline.rt
-          radiusY: outline.rt
-          direction: PathArc.Counterclockwise
+          y: outline.rb
+          radiusX: outline.rb
+          radiusY: outline.rb
+          direction: PathArc.Clockwise
         }
         // Borde derecho.
         PathLine { x: outline.w; y: outline.h - outline.rb }
