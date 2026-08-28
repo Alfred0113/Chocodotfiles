@@ -11,12 +11,21 @@ git clone <este repo> ~/dotfiles
 
 `install.sh` crea symlinks desde `~/.config/*` hacia las carpetas de este repo.
 
+**No incluido en el repo** (copiar aparte a la carpeta indicada):
+- Wallpapers → `~/Imágenes/Wallpapers/` (imágenes, no viven en git)
+
 ## Estructura
 
 - `hypr/` → `~/.config/hypr`
 - `waybar/` → `~/.config/waybar`
-- `theming/` → sistema de temas propio (paletas de color + assets por app)
-- `bin/` → scripts propios usados por keybindings, la barra, y servicios de fondo
+- `mako/` → `~/.config/mako`
+- `walker/` → `~/.config/walker`
+- `theming/` → `~/.config/theming` — sistema de tema din��mico:
+  - `engines/{matugen,wallust}/` → `~/.config/{matugen,wallust}` — configs de los dos motores de extracción de color
+  - `templates/` → plantillas propias (waybar.css, mako, walker.css) que leen `current/colors.toml`
+  - `current/` → estado generado (no versionado): paleta activa + assets derivados
+  - `themes/aether/` → paleta estática vendorizada de referencia, ya no es el mecanismo activo
+- `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, ...) usados por keybindings, autostart, y la barra
 
 ## Crédito
 

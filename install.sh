@@ -9,11 +9,22 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config"
 
-# Carpetas del repo que se enlazan 1:1 a ~/.config/<nombre>.
-LINKED_DIRS=(hypr waybar)
+# Pares "carpeta del repo -> ~/.config/<nombre>". La mayoría se llama igual
+# de los dos lados; matugen/wallust viven anidados dentro de theming/engines.
+LINKED_DIRS=(
+    "hypr:hypr"
+    "waybar:waybar"
+    "mako:mako"
+    "walker:walker"
+    "theming:theming"
+    "theming/engines/matugen:matugen"
+    "theming/engines/wallust:wallust"
+)
 
-for name in "${LINKED_DIRS[@]}"; do
-    src="$REPO_DIR/$name"
+for pair in "${LINKED_DIRS[@]}"; do
+    src_rel="${pair%%:*}"
+    name="${pair##*:}"
+    src="$REPO_DIR/$src_rel"
     dest="$CONFIG_DIR/$name"
 
     if [ ! -d "$src" ]; then
@@ -36,4 +47,5 @@ for name in "${LINKED_DIRS[@]}"; do
     echo "Enlazado: $dest -> $src"
 done
 
-echo "Listo. Revisa que tus paquetes (hyprland, waybar, mako, walker, etc.) estén instalados."
+echo "Listo. Revisa que tus paquetes (hyprland, waybar, mako, walker, matugen, wallust, swaybg) estén instalados."
+echo "Falta copiar tus wallpapers a ~/Imágenes/Wallpapers/ (no viaja en este repo)."

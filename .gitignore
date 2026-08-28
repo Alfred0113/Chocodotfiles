@@ -1,5 +1,6 @@
 *.bak
 *.bak.*
+__pycache__/
 
 # Estado generado en cada sesión/selección de wallpaper (colors.toml, symlink
 # de wallpaper activo, motor usado) — se regenera, no se versiona.

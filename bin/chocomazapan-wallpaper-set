@@ -104,5 +104,27 @@ esac
 ln -sfn "$image" "$CURRENT_DIR/wallpaper"
 echo "$engine" > "$ENGINE_STATE_FILE"
 
+# Generar waybar.css / walker.css / mako a partir de colors.toml.
+"$HOME/dotfiles/bin/chocomazapan-apply-theme"
+
+# Recargar apps para que tomen el nuevo tema.
+if pidof waybar >/dev/null; then
+    pkill -x waybar 2>/dev/null || true
+    sleep 0.2
+    setsid uwsm-app -- waybar >/dev/null 2>&1 &
+    disown
+fi
+
+if pidof mako >/dev/null; then
+    makoctl reload >/dev/null 2>&1 || true
+fi
+
+if pidof walker >/dev/null; then
+    pkill -x walker 2>/dev/null || true
+    sleep 0.2
+    setsid walker --gapplication-service >/dev/null 2>&1 &
+    disown
+fi
+
 echo "Wallpaper: $(basename "$image")"
 echo "Motor: $engine"
