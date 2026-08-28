@@ -6,23 +6,20 @@ o.bind_menu("SUPER + CTRL + O", "Toggle menu", "toggle")
 o.bind_menu("SUPER + SHIFT + code:201", "Menu", nil)
 o.bind_menu("SUPER + ESCAPE", "System menu", "system")
 o.bind_menu("XF86PowerOff", "Power menu", "system", { locked = true })
--- TODO Fase 7b: vendorizar chocomazapan-menu-keybindings / chocomazapan-menu-tmux-keybindings
--- o.bind("SUPER + K", "Show key bindings", "chocomazapan-menu-keybindings")
--- o.bind("SUPER + ALT + K", "Show Tmux key bindings", "chocomazapan-menu-tmux-keybindings")
+o.bind("SUPER + K", "Show key bindings", "chocomazapan-menu-keybindings")
+o.bind("SUPER + ALT + K", "Show Tmux key bindings", "chocomazapan-menu-tmux-keybindings")
 o.bind("XF86Calculator", "Calculator", "gnome-calculator")
 
--- TODO Fase 7b: vendorizar chocomazapan-toggle-waybar / chocomazapan-style-waybar-position
--- o.bind("SUPER + SHIFT + SPACE", "Toggle top bar", "chocomazapan-toggle-waybar")
--- o.bind("SUPER + SHIFT + CTRL + UP", "Move Waybar to top", "chocomazapan-style-waybar-position top")
--- o.bind("SUPER + SHIFT + CTRL + DOWN", "Move Waybar to bottom", "chocomazapan-style-waybar-position bottom")
--- o.bind("SUPER + SHIFT + CTRL + LEFT", "Move Waybar to left", "chocomazapan-style-waybar-position left")
--- o.bind("SUPER + SHIFT + CTRL + RIGHT", "Move Waybar to right", "chocomazapan-style-waybar-position right")
+o.bind("SUPER + SHIFT + SPACE", "Toggle top bar", "chocomazapan-toggle-waybar")
+o.bind("SUPER + SHIFT + CTRL + UP", "Move Waybar to top", "chocomazapan-style-waybar-position top")
+o.bind("SUPER + SHIFT + CTRL + DOWN", "Move Waybar to bottom", "chocomazapan-style-waybar-position bottom")
+o.bind("SUPER + SHIFT + CTRL + LEFT", "Move Waybar to left", "chocomazapan-style-waybar-position left")
+o.bind("SUPER + SHIFT + CTRL + RIGHT", "Move Waybar to right", "chocomazapan-style-waybar-position right")
 o.bind("SUPER + CTRL + SPACE", "Wallpaper switcher", "chocomazapan-wallpaper-set")
 -- Separate "theme menu" dropped — the wallpaper picker IS the theme now (Fase 1b).
--- TODO Fase 7b: vendorizar chocomazapan-hyprland-window-transparency-toggle / -gaps-toggle / -single-square-aspect-toggle
--- o.bind("SUPER + BACKSPACE", "Toggle window transparency", "chocomazapan-hyprland-window-transparency-toggle")
--- o.bind("SUPER + SHIFT + BACKSPACE", "Toggle window gaps", "chocomazapan-hyprland-window-gaps-toggle")
--- o.bind("SUPER + CTRL + BACKSPACE", "Toggle single-window square aspect", "chocomazapan-hyprland-window-single-square-aspect-toggle")
+o.bind("SUPER + BACKSPACE", "Toggle window transparency", "chocomazapan-hyprland-window-transparency-toggle")
+o.bind("SUPER + SHIFT + BACKSPACE", "Toggle window gaps", "chocomazapan-hyprland-window-gaps-toggle")
+o.bind("SUPER + CTRL + BACKSPACE", "Toggle single-window square aspect", "chocomazapan-hyprland-window-single-square-aspect-toggle")
 
 o.bind("SUPER + COMMA", "Dismiss last notification", "makoctl dismiss")
 o.bind("SUPER + SHIFT + COMMA", "Dismiss all notifications", "makoctl dismiss --all")
@@ -31,8 +28,7 @@ o.bind("SUPER + ALT + COMMA", "Invoke last notification", "makoctl invoke")
 o.bind("SUPER + SHIFT + ALT + COMMA", "Restore last notification", "makoctl restore")
 
 o.bind_toggle("SUPER + CTRL + I", "Toggle locking on idle", "idle")
--- TODO Fase 7b: vendorizar chocomazapan-toggle-nightlight
--- o.bind_toggle("SUPER + CTRL + N", "Toggle nightlight", "nightlight")
+o.bind_toggle("SUPER + CTRL + N", "Toggle nightlight", "nightlight")
 -- Laptop-only binds (internal display / lid switch) deferred to Fase 8.
 -- o.bind("SUPER + CTRL + Delete", "Toggle laptop display", "chocomazapan-hyprland-monitor-internal toggle")
 -- o.bind("SUPER + CTRL + ALT + Delete", "Toggle laptop display mirroring", "chocomazapan-hyprland-monitor-internal-mirror toggle")
@@ -42,20 +38,17 @@ o.bind_toggle("SUPER + CTRL + I", "Toggle locking on idle", "idle")
 o.bind("PRINT", "Screenshot", "chocomazapan-capture-screenshot")
 o.bind_menu("ALT + PRINT", "Screenrecording", "screenrecord")
 o.bind("SUPER + PRINT", "Color picker", "pkill hyprpicker || hyprpicker -a")
--- TODO Fase 7b: vendorizar chocomazapan-capture-text-extraction (OCR)
--- o.bind("SUPER + CTRL + PRINT", "Extract text (OCR) from screenshot", "chocomazapan-capture-text-extraction")
+o.bind("SUPER + CTRL + PRINT", "Extract text (OCR) from screenshot", "chocomazapan-capture-text-extraction")
 
 -- Share menu dropped in Fase 4 (not used).
 
--- TODO Fase 7b: vendorizar chocomazapan-transcode
--- o.bind("SUPER + CTRL + PERIOD", "Transcode", "chocomazapan-transcode")
+o.bind("SUPER + CTRL + PERIOD", "Transcode", "chocomazapan-transcode")
 
 -- Reminders dropped in Fase 4 (not used).
 
--- TODO Fase 7b: vendorizar chocomazapan-notification-time / -battery / -weather
--- o.bind("SUPER + CTRL + ALT + T", "Show time", "chocomazapan-notification-time")
--- o.bind("SUPER + CTRL + ALT + B", "Show battery remaining", "chocomazapan-notification-battery")
--- o.bind("SUPER + CTRL + ALT + W", "Show weather", "chocomazapan-notification-weather")
+o.bind("SUPER + CTRL + ALT + T", "Show time", "chocomazapan-notification-time")
+o.bind("SUPER + CTRL + ALT + B", "Show battery remaining", "chocomazapan-notification-battery")
+o.bind("SUPER + CTRL + ALT + W", "Show weather", "chocomazapan-notification-weather")
 
 o.bind("SUPER + CTRL + A", "Audio controls", { chocomazapan = "audio" })
 o.bind("SUPER + CTRL + B", "Bluetooth controls", { chocomazapan = "bluetooth" })

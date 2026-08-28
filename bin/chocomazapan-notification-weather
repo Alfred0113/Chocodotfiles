@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# meta:summary=Show the current weather notification
+
+chocomazapan-notification-send -g $(chocomazapan-weather-icon) -u low "$(chocomazapan-weather-status)"

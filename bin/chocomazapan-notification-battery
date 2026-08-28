@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# meta:summary=Show the current battery status notification
+
+chocomazapan-notification-send -g 󰁹 -u low "$(chocomazapan-battery-status)"

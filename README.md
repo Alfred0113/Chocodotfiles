@@ -54,10 +54,19 @@ Todo lo anterior (excepto Obsidian, que solo corre cuando se le pide) se ejecuta
 **No vendorizado, documentado y con razón:**
 - `omarchy-recover-internal-monitor.service` — depende de un toggle que solo crea el árbol de keybindings por defecto (ver riesgo abajo), no portado. No-op en este desktop. Retomar en la Fase 8 (laptop).
 
-## ⚠️ Riesgo grande a investigar antes de la Fase 7 (desinstalar Omarchy)
+## Notas de la Fase 7a (portar el árbol de keybindings/config por defecto)
 
-- `hypr/hyprland.lua` carga `require("omarchy.current.theme.hyprland")` desde `$OMARCHY_PATH` — no está claro si el runtime Lua de Hyprland (las funciones `hl.*` usadas en TODOS los `.lua` de este repo) es nativo de Hyprland o un módulo que provee/instala Omarchy.
-- Confirmado: existe un árbol completo de **keybindings por defecto** fuera de este repo, en `~/.local/share/omarchy/default/hypr/bindings/` (`clipboard.lua`, `media.lua`, `tiling-v2.lua`, `utilities.lua`), con su propio DSL (`o.bind`, `o.bind_menu`). Ahí viven atajos base como `SUPER+SPACE` (launcher), tiling de ventanas, teclas multimedia, portapapeles, etc. — nada de esto está en `hypr/bindings.lua` (que solo trae los *extras* del usuario). Si `o.*`/`hl.*` son de Omarchy, desinstalarlo dejaría el escritorio sin la mayoría de sus atajos de teclado hasta reconstruir ese árbol completo — un proyecto notablemente más grande de lo planeado originalmente.
+El riesgo grande que se arrastraba desde las Fases 4/6 quedó resuelto: `pacman -Qo /usr/share/hypr/stubs/hl.meta.lua` confirma que el runtime Lua de Hyprland (`hl.*`) es 100% nativo del paquete `hyprland`, autogenerado por el propio compositor — no depende de Omarchy en absoluto. El wrapper `o.*` (usado en todo el árbol de bindings por defecto) resultó ser solo 103 líneas propias de Omarchy sobre `hl.bind`, mecánicamente portable.
+
+Se portó el árbol completo `default/hypr` (~600 líneas) a `hypr/core/`: `paths`, `helpers` (el wrapper `o.*`), `autostart`, `envs`, `looknfeel`, `input`, `windows`, `toggles`, `require_all`, más `apps/` (19 archivos de reglas de ventana por app, con los app-id `org.omarchy.*` renombrados a `org.chocomazapan.*`) y los bindings de `clipboard`/`tiling-v2`/`media`/`utilities`. `hyprland.lua` ya no usa `$OMARCHY_PATH` ni carga nada de Omarchy. `~/.local/state/chocomazapan/toggles/hypr/` reemplaza la ruta de estado de Omarchy para los toggles (gaps, aspect-ratio).
+
+## Notas de la Fase 7b (vendorizar los scripts que faltaban)
+
+Se vendorizaron los ~28 scripts que habían quedado marcados `TODO Fase 7b` en `hypr/core/bindings/{media,utilities}.lua`: mostrar keybindings de Hyprland (`SUPER+K`) y de Tmux (`SUPER+ALT+K`), toggle/posición de waybar, toggle de transparencia/gaps/aspecto de ventana, nightlight, mic-mute, audio-output-switch, toggle de touchpad, OCR de captura, transcode, y notificaciones de hora/batería/clima. Todo activado en `hypr/core/bindings/{media,utilities}.lua` — probado en vivo (194 keybindings cargados sin conflicto tras el reload).
+
+De paso se limpió un `omarchy-menu-tmux-keybindings` que quedaba vivo en `~/.config/tmux/tmux.conf` (atajo `PREFIX + ?`, fuera de este repo — es config propia del usuario) y se vendorizó localmente el CSS de tema de Discord (`theming/templates/vencord-quickcss.css.template`), que antes traía un `@import` a una URL externa llamada `omarchy-discord.theme.css`; ahora el CSS está inlineado en la plantilla, sin dependencia de red y sin la palabra "omarchy".
+
+Lo laptop-only (`chocomazapan-powerprofiles-init`, `chocomazapan-hyprland-monitor-watch`, toggle de monitor interno/mirror, lid switch) se queda diferido a la Fase 8, marcado explícito en `hypr/core/autostart.lua` y `hypr/core/bindings/utilities.lua`.
 
 ## Crédito
 

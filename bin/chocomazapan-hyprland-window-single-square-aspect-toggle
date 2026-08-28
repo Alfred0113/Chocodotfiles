@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# meta:summary=Toggle single-window square aspect ratio.
+
+case $(chocomazapan-hyprland-toggle single-window-aspect-ratio) in
+  on) chocomazapan-notification-send -g  "Enable single-window square aspect ratio" ;;
+  off) chocomazapan-notification-send -g  "Disable single-window square aspect ratio" ;;
+esac
