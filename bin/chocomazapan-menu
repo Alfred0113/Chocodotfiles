@@ -30,8 +30,9 @@ menu() {
   echo -e "$options" | chocomazapan-launch-walker --dmenu --width 295 --minheight 1 --maxheight 630 -p "$prompt…" 2>/dev/null
 }
 
+# Screenshot / screen recording / color picker.
 show_capture_menu() {
-  case $(menu "Capture" "  Screenshot\n  Screenrecord\n󰃉  Color") in
+  case $(menu "Capture" "  Screenshot\n  Screenrecord\n󰃉  Color") in
   *Screenshot*) chocomazapan-capture-screenshot ;;
   *Screenrecord*) show_screenrecord_menu ;;
   *Color*) pkill hyprpicker || hyprpicker -a ;;
@@ -42,7 +43,7 @@ show_capture_menu() {
 show_screenrecord_menu() {
   chocomazapan-capture-screenrecording --stop-recording && exit 0
 
-  case $(menu "Screenrecord" "  With no audio\n  With desktop audio\n  With desktop + microphone audio") in
+  case $(menu "Screenrecord" "  With no audio\n  With desktop audio\n  With desktop + microphone audio") in
   *"With no audio") chocomazapan-capture-screenrecording ;;
   *"With desktop audio") chocomazapan-capture-screenrecording --with-desktop-audio ;;
   *"With desktop + microphone audio") chocomazapan-capture-screenrecording --with-desktop-audio --with-microphone-audio ;;
@@ -50,6 +51,7 @@ show_screenrecord_menu() {
   esac
 }
 
+# Quick on/off switches: idle-lock and notification do-not-disturb.
 show_toggle_menu() {
   case $(menu "Toggle" "󱫖  Idle Lock\n󰂛  Notifications") in
   *Idle*) chocomazapan-toggle-idle ;;
@@ -58,8 +60,11 @@ show_toggle_menu() {
   esac
 }
 
+# Hardware/service quick-launchers: audio mixer, wifi, bluetooth, plus
+# restarting the background daemons (waybar, mako, walker, hypridle) if one
+# gets into a bad state.
 show_setup_menu() {
-  case $(menu "Setup" "  Audio\n  Wifi\n󰂯  Bluetooth\n  Restart services") in
+  case $(menu "Setup" "  Audio\n  Wifi\n󰂯  Bluetooth\n  Restart services") in
   *Audio*) chocomazapan-launch-audio ;;
   *Wifi*) chocomazapan-launch-wifi ;;
   *Bluetooth*) chocomazapan-launch-bluetooth ;;
@@ -69,7 +74,7 @@ show_setup_menu() {
 }
 
 show_restart_menu() {
-  case $(menu "Restart" "  Hypridle\n󰎟  Mako\n󰌧  Walker\n󰍜  Waybar") in
+  case $(menu "Restart" "  Hypridle\n󰎟  Mako\n󰌧  Walker\n󰍜  Waybar") in
   *Hypridle*) chocomazapan-restart-hypridle ;;
   *Mako*) chocomazapan-restart-mako ;;
   *Walker*) chocomazapan-restart-walker ;;
@@ -78,15 +83,18 @@ show_restart_menu() {
   esac
 }
 
+# Wallpaper picker — this is the whole "theme" now (see chocomazapan-wallpaper-set):
+# choosing an image also regenerates the color palette for waybar/mako/walker.
 show_style_menu() {
-  case $(menu "Style" "  Wallpaper") in
+  case $(menu "Style" "  Wallpaper") in
   *Wallpaper*) chocomazapan-wallpaper-set ;;
   *) show_main_menu ;;
   esac
 }
 
+# Session/power actions.
 show_system_menu() {
-  case $(menu "System" "  Lock\n󰒲  Suspend\n󰍃  Logout\n󰜉  Restart\n󰐥  Shutdown") in
+  case $(menu "System" "  Lock\n󰒲  Suspend\n󰍃  Logout\n󰜉  Restart\n󰐥  Shutdown") in
   *Lock*) chocomazapan-system-lock ;;
   *Suspend*) systemctl suspend ;;
   *Logout*) chocomazapan-system-logout ;;
@@ -97,7 +105,7 @@ show_system_menu() {
 }
 
 show_main_menu() {
-  go_to_menu "$(menu "Go" "󰀻  Apps\n  Capture\n󰔎  Toggle\n  Setup\n  Style\n  System")"
+  go_to_menu "$(menu "Go" "󰀻  Apps\n  Capture\n󰔎  Toggle\n  Setup\n  Style\n  System")"
 }
 
 go_to_menu() {
