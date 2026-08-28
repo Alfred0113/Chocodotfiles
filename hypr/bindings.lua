@@ -32,7 +32,12 @@ hl.bind("SUPER + SHIFT + ALT + X", hl.dsp.exec_cmd([[chocomazapan-launch-webapp 
 
 -- Overwrite existing bindings with hl.unbind() first if needed.
 -- hl.unbind("SUPER + SPACE")
--- hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("omarchy-menu"), { description = "Omarchy menu" })
+-- hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("chocomazapan-menu"), { description = "Menu" })
+
+-- Own menu binding, replacing the previous default SUPER+ALT+SPACE binding
+-- (that default lives in a separate bindings tree, not in this file — see README).
+hl.unbind("SUPER + ALT + SPACE")
+hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd("chocomazapan-menu"), { description = "Menu" })
 
 -- Override monitor scaling cycle to preserve monitor positions
 hl.unbind("SUPER + code:61")

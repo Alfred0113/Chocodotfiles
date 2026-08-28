@@ -1,0 +1,121 @@
+#!/bin/bash
+# ChocoMazapan menu — trimmed down to what's actually used day to day.
+# Deliberately drops the huge install/remove/update software catalog
+# (that's just `paru`/`pacman` directly), Learn links, and laptop-only
+# hardware toggles (hybrid GPU, touchpad haptics, etc).
+
+BACK_TO_EXIT=false
+
+back_to() {
+  local parent_menu="$1"
+  if [[ $BACK_TO_EXIT == "true" ]]; then
+    exit 0
+  elif [[ -n $parent_menu ]]; then
+    "$parent_menu"
+  else
+    show_main_menu
+  fi
+}
+
+toggle_existing_menu() {
+  if pgrep -f "walker.*--dmenu" >/dev/null; then
+    walker --close >/dev/null 2>&1
+    exit 0
+  fi
+}
+
+menu() {
+  local prompt="$1"
+  local options="$2"
+  echo -e "$options" | chocomazapan-launch-walker --dmenu --width 295 --minheight 1 --maxheight 630 -p "$prompt…" 2>/dev/null
+}
+
+show_capture_menu() {
+  case $(menu "Capture" "  Screenshot\n  Screenrecord\n󰃉  Color") in
+  *Screenshot*) chocomazapan-capture-screenshot ;;
+  *Screenrecord*) show_screenrecord_menu ;;
+  *Color*) pkill hyprpicker || hyprpicker -a ;;
+  *) show_main_menu ;;
+  esac
+}
+
+show_screenrecord_menu() {
+  chocomazapan-capture-screenrecording --stop-recording && exit 0
+
+  case $(menu "Screenrecord" "  With no audio\n  With desktop audio\n  With desktop + microphone audio") in
+  *"With no audio") chocomazapan-capture-screenrecording ;;
+  *"With desktop audio") chocomazapan-capture-screenrecording --with-desktop-audio ;;
+  *"With desktop + microphone audio") chocomazapan-capture-screenrecording --with-desktop-audio --with-microphone-audio ;;
+  *) back_to show_capture_menu ;;
+  esac
+}
+
+show_toggle_menu() {
+  case $(menu "Toggle" "󱫖  Idle Lock\n󰂛  Notifications") in
+  *Idle*) chocomazapan-toggle-idle ;;
+  *Notifications*) chocomazapan-toggle-notification-silencing ;;
+  *) back_to show_main_menu ;;
+  esac
+}
+
+show_setup_menu() {
+  case $(menu "Setup" "  Audio\n  Wifi\n󰂯  Bluetooth\n  Restart services") in
+  *Audio*) chocomazapan-launch-audio ;;
+  *Wifi*) chocomazapan-launch-wifi ;;
+  *Bluetooth*) chocomazapan-launch-bluetooth ;;
+  *Restart*) show_restart_menu ;;
+  *) show_main_menu ;;
+  esac
+}
+
+show_restart_menu() {
+  case $(menu "Restart" "  Hypridle\n󰎟  Mako\n󰌧  Walker\n󰍜  Waybar") in
+  *Hypridle*) chocomazapan-restart-hypridle ;;
+  *Mako*) chocomazapan-restart-mako ;;
+  *Walker*) chocomazapan-restart-walker ;;
+  *Waybar*) chocomazapan-restart-waybar ;;
+  *) back_to show_setup_menu ;;
+  esac
+}
+
+show_style_menu() {
+  case $(menu "Style" "  Wallpaper") in
+  *Wallpaper*) chocomazapan-wallpaper-set ;;
+  *) show_main_menu ;;
+  esac
+}
+
+show_system_menu() {
+  case $(menu "System" "  Lock\n󰒲  Suspend\n󰍃  Logout\n󰜉  Restart\n󰐥  Shutdown") in
+  *Lock*) chocomazapan-system-lock ;;
+  *Suspend*) systemctl suspend ;;
+  *Logout*) chocomazapan-system-logout ;;
+  *Restart*) chocomazapan-system-reboot ;;
+  *Shutdown*) chocomazapan-system-shutdown ;;
+  *) back_to show_main_menu ;;
+  esac
+}
+
+show_main_menu() {
+  go_to_menu "$(menu "Go" "󰀻  Apps\n  Capture\n󰔎  Toggle\n  Setup\n  Style\n  System")"
+}
+
+go_to_menu() {
+  case "${1,,}" in
+  *apps*) walker -p "Launch…" ;;
+  *capture*) show_capture_menu ;;
+  *toggle*) show_toggle_menu ;;
+  *setup*) show_setup_menu ;;
+  *style*) show_style_menu ;;
+  *system*) show_system_menu ;;
+  esac
+}
+
+toggle_existing_menu
+
+if [[ -n $1 ]]; then
+  BACK_TO_EXIT=true
+  go_to_menu "$1"
+else
+  show_main_menu
+fi

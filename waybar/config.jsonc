@@ -9,7 +9,7 @@
   "margin-bottom": 4,
   "margin-left": 10,
   "margin-right": 10,
-  "modules-left": ["custom/omarchy", "hyprland/workspaces"],
+  "modules-left": ["custom/chocomazapan", "hyprland/workspaces"],
   "modules-center": ["custom/clock", "clock#vertical", "custom/weather", "custom/cava", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
   "modules-right": [
     "group/tray-expander",
@@ -44,11 +44,11 @@
       "5": []
     }
   },
-  "custom/omarchy": {
-    "format": "<span font='omarchy'>\ue900</span>",
-    "on-click": "omarchy-menu",
+  "custom/chocomazapan": {
+    "format": "\udb80\udc3b",
+    "on-click": "chocomazapan-menu",
     "on-click-right": "xdg-terminal-exec",
-    "tooltip-format": "Omarchy Menu\n\nSuper + Alt + Space"
+    "tooltip-format": "Menu\n\nSuper + Alt + Space"
   },
   "cpu": {
     "interval": 5,
@@ -109,7 +109,7 @@
     "tooltip-format-discharging": "{power:>1.0f}W↓ {capacity}%",
     "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
     "interval": 5,
-    "on-click": "omarchy-menu power",
+    "on-click": "chocomazapan-menu system",
     "on-click-right": "notify-send -u low \"$(chocomazapan-battery-status)\"",
     "states": {
       "warning": 20,

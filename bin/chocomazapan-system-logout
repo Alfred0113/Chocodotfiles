@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# meta:summary=Log out after closing application windows
+
+nohup bash -c "sleep 2 && uwsm stop" >/dev/null 2>&1 &
+
+# Now close all windows
+chocomazapan-hyprland-window-close-all
+sleep 1 # Allow apps like Chrome to shutdown correctly
