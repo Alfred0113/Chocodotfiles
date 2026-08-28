@@ -33,15 +33,24 @@ pick_random_image() {
     list_images | shuf -n1
 }
 
-# Aplica el wallpaper real (swaybg) y sincroniza el resto del setup a partir
+# Aplica el wallpaper real (awww) y sincroniza el resto del setup a partir
 # de lo que ya haya en theming/current/colors.toml.
+#
+# Se usa awww (sucesor de swww) en vez de swaybg: swaybg tiene un bug real
+# confirmado en este setup con dos monitores (mata+relanza el proceso en
+# cada cambio, y a veces solo repinta uno de los dos outputs con la imagen
+# nueva — mismo PID dueño de ambas capas, pero una se queda con pixeles
+# viejos). awww corre como daemon persistente y solo recibe un comando
+# nuevo por cambio, sin ese problema.
 sync_desktop() {
     local image="$1" mode="$2"
 
-    pkill -x swaybg 2>/dev/null || true
-    sleep 0.2
-    setsid swaybg -i "$image" -m fill >/dev/null 2>&1 &
-    disown
+    pgrep -x awww-daemon >/dev/null || {
+        setsid uwsm-app -- awww-daemon >/dev/null 2>&1 &
+        disown
+        sleep 0.3
+    }
+    awww img "$image" --resize crop >/dev/null 2>&1
 
     ln -sfn "$image" "$CURRENT_DIR/wallpaper"
     echo "$mode" >"$MODE_STATE_FILE"
