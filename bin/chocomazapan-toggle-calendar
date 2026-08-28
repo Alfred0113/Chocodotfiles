@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# meta:summary=Toggle the gsimplecal popup calendar (bound to waybar's calendar icon)
+
+if pgrep -x gsimplecal >/dev/null; then
+    pkill -x gsimplecal
+else
+    setsid uwsm-app -- gsimplecal >/dev/null 2>&1 &
+    disown
+fi

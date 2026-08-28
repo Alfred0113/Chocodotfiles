@@ -10,7 +10,7 @@
   "margin-left": 10,
   "margin-right": 10,
   "modules-left": ["custom/chocomazapan", "hyprland/workspaces"],
-  "modules-center": ["custom/clock", "clock#vertical", "custom/weather", "custom/cava", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
+  "modules-center": ["custom/calendar", "custom/clock", "clock#vertical", "custom/weather", "custom/cava", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
   "modules-right": [
     "group/tray-expander",
     "bluetooth",
@@ -57,6 +57,11 @@
     "on-click-right": "alacritty"
   },
 
+  "custom/calendar": {
+    "format": "󰃭",
+    "tooltip": false,
+    "on-click": "chocomazapan-toggle-calendar"
+  },
   "custom/clock": {
     "exec": "~/.config/waybar/scripts/clock.sh",
     "interval": 1,
