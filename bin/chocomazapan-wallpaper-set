@@ -1,14 +1,13 @@
 #!/bin/bash
 # Selecciona un wallpaper y genera theming/current/colors.toml a partir de
-# esa imagen usando aether (bjarneo/aether, la app de theming instalada).
+# esa imagen usando aether (bjarneo/aether, headless — nunca abre su GUI).
 #
 # Uso:
-#   chocomazapan-wallpaper-set                        -> abre la GUI real de aether
-#                                                         (picker de wallpapers, 24 modos
-#                                                         de extracción, preview en vivo).
-#                                                         Cada vez que le das "Apply" ahí
-#                                                         adentro, este script lo detecta y
-#                                                         sincroniza con el resto del setup.
+#   chocomazapan-wallpaper-set                        -> carrusel de imágenes (imv):
+#                                                         flechas para navegar, sin nombre
+#                                                         de archivo visible, Return aplica
+#                                                         la imagen actual y cierra. Navegar
+#                                                         solo no dispara nada.
 #   chocomazapan-wallpaper-set random [modo]          -> headless, imagen al azar
 #   chocomazapan-wallpaper-set <archivo|nombre> [modo] -> headless
 #
@@ -19,7 +18,6 @@ set -euo pipefail
 
 WALLPAPER_DIR="$HOME/Imágenes/Wallpapers"
 CURRENT_DIR="$HOME/dotfiles/theming/current"
-AETHER_THEME_DIR="$HOME/.config/aether/theme"
 MODE_STATE_FILE="$CURRENT_DIR/extract-mode"
 
 mkdir -p "$CURRENT_DIR"
@@ -82,32 +80,19 @@ sync_desktop() {
 }
 
 if [ -z "$image_arg" ]; then
-    # Interactivo: la GUI real de aether. Mientras esté abierta, vigilamos su
-    # colors.toml — cada cambio (cada "Apply" que el usuario haga ahí) dispara
-    # sync_desktop con la imagen más reciente en aether/theme/backgrounds/.
-    setsid uwsm-app -- aether >/dev/null 2>&1 &
-    aether_pid=$!
-    disown
+    # Interactivo: carrusel de imágenes con imv. Navegar (flechas) no hace
+    # nada más que mostrar la imagen — sin overlay, sin nombre de archivo.
+    # Return llama de vuelta a este mismo script (rama headless de abajo,
+    # en background) con la imagen actual y cierra el visor.
+    mapfile -t images < <(list_images | sort)
+    if [ "${#images[@]}" -eq 0 ]; then
+        echo "No hay wallpapers en $WALLPAPER_DIR" >&2
+        exit 1
+    fi
 
-    colors_file="$AETHER_THEME_DIR/colors.toml"
-    last_mtime=""
-    [ -f "$colors_file" ] && last_mtime="$(stat -c %Y "$colors_file" 2>/dev/null || echo "")"
-
-    while kill -0 "$aether_pid" 2>/dev/null; do
-        sleep 1
-        [ -f "$colors_file" ] || continue
-
-        mtime="$(stat -c %Y "$colors_file" 2>/dev/null || echo "")"
-        [ "$mtime" = "$last_mtime" ] && continue
-        last_mtime="$mtime"
-
-        bg_image="$(find "$AETHER_THEME_DIR/backgrounds" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
-        [ -n "$bg_image" ] || continue
-
-        cp "$colors_file" "$CURRENT_DIR/colors.toml"
-        sync_desktop "$bg_image" "aether-gui"
-    done
-    exit 0
+    exec imv -f -w "Wallpapers" \
+        -c 'bind <Return> = exec setsid uwsm-app -- chocomazapan-wallpaper-set "$imv_current_file" >/tmp/chocomazapan-wallpaper-set.log 2>&1 & ; quit' \
+        "${images[@]}"
 fi
 
 # Headless: resolver imagen.
@@ -136,3 +121,5 @@ fi
 
 aether --generate "$image" --extract-mode "$mode" --no-apply --output "$CURRENT_DIR"
 sync_desktop "$image" "$mode"
+
+chocomazapan-notification-send "Tema aplicado" "$(basename "$image") · $mode" >/dev/null 2>&1 || true
