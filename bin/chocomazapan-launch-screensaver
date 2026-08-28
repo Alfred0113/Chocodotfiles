@@ -1,0 +1,42 @@
+#!/bin/bash
+# meta:summary=Launch the ChocoMazapan screensaver in the default terminal.
+# Only Alacritty is supported — that's the only terminal installed on this system.
+
+if ! command -v tte &>/dev/null; then
+  exit 1
+fi
+
+pgrep -f org.chocomazapan.screensaver && exit 0
+
+if chocomazapan-toggle-enabled screensaver-off && [[ $1 != "force" ]]; then
+  exit 1
+fi
+
+walker -q
+
+focused=$(chocomazapan-hyprland-monitor-focused)
+terminal=$(xdg-terminal-exec --print-id)
+
+hypr_focus_monitor() {
+  hyprctl dispatch "hl.dsp.focus({ monitor = \"$1\" })" >/dev/null 2>&1 || hyprctl dispatch focusmonitor "$1" >/dev/null
+}
+
+hypr_exec() {
+  local command="$1"
+  hyprctl dispatch "hl.dsp.exec_cmd([[$command]])" >/dev/null 2>&1 || hyprctl dispatch exec -- bash -lc "$command" >/dev/null
+}
+
+for m in $(hyprctl monitors -j | jq -r '.[] | .name'); do
+  hypr_focus_monitor "$m"
+
+  case $terminal in
+  *Alacritty*)
+    hypr_exec "alacritty --class=org.chocomazapan.screensaver --config-file ~/dotfiles/alacritty/screensaver.toml -e ~/dotfiles/bin/chocomazapan-screensaver"
+    ;;
+  *)
+    notify-send -u low "✋  Screensaver only runs in Alacritty"
+    ;;
+  esac
+done
+
+hypr_focus_monitor "$focused"

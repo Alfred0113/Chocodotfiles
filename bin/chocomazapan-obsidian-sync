@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Copia el CSS de tema generado al vault de Obsidian y lo deja habilitado
+como snippet. La ruta del vault es específica de esta máquina — ajusta
+VAULT_DIR si migras a otra PC/laptop."""
+
+import json
+import shutil
+import sys
+from pathlib import Path
+
+VAULT_DIR = Path.home() / "Documentos" / "Machiliztli"
+SNIPPET_NAME = "chocomazapan"
+
+SOURCE_CSS = Path.home() / "dotfiles" / "theming" / "current" / "obsidian.css"
+
+
+def main() -> int:
+    if not VAULT_DIR.is_dir():
+        print(f"No existe el vault: {VAULT_DIR}", file=sys.stderr)
+        return 1
+
+    if not SOURCE_CSS.exists():
+        print(f"No existe {SOURCE_CSS}. Corre chocomazapan-wallpaper-set primero.", file=sys.stderr)
+        return 1
+
+    snippets_dir = VAULT_DIR / ".obsidian" / "snippets"
+    snippets_dir.mkdir(parents=True, exist_ok=True)
+
+    dest_css = snippets_dir / f"{SNIPPET_NAME}.css"
+    shutil.copy(SOURCE_CSS, dest_css)
+
+    appearance_file = VAULT_DIR / ".obsidian" / "appearance.json"
+    appearance = {}
+    if appearance_file.exists() and appearance_file.stat().st_size > 0:
+        appearance = json.loads(appearance_file.read_text())
+
+    enabled = set(appearance.get("enabledCssSnippets", []))
+    if SNIPPET_NAME not in enabled:
+        enabled.add(SNIPPET_NAME)
+        appearance["enabledCssSnippets"] = sorted(enabled)
+        appearance_file.write_text(json.dumps(appearance, indent=2) + "\n")
+
+    print(f"Snippet actualizado: {dest_css}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

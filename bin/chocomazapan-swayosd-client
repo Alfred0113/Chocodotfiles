@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# meta:summary=Wrapper for swayosd-client that targets the currently focused monitor.
+# meta:args=<swayosd-client-args...>
+
+exec swayosd-client --monitor "$(chocomazapan-hyprland-monitor-focused)" "$@"

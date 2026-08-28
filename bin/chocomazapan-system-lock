@@ -21,13 +21,13 @@ if pgrep -x "1password" >/dev/null; then
 fi
 
 # Avoid running screensaver when locked
-pkill -f org.omarchy.screensaver
+pkill -f org.chocomazapan.screensaver
 
 if [[ ${CHOCOMAZAPAN_LOCK_ONLY:-false} != "true" ]]; then
   (
     sleep 10
     pidof hyprlock >/dev/null || exit 0
-    omarchy-brightness-keyboard off
-    omarchy-brightness-display off
+    chocomazapan-brightness-keyboard off
+    chocomazapan-brightness-display off
   ) &
 fi

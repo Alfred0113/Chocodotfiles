@@ -1,0 +1,15 @@
+#!/bin/bash
+# Applies the current theme's accent color to all OpenRGB-controllable
+# hardware (RAM, GPU, motherboard ARGB headers/fans, etc.) as a static color.
+
+COLOR_FILE="$HOME/dotfiles/theming/current/rgb-color"
+
+if [[ ! -f $COLOR_FILE ]]; then
+    echo "No hay theming/current/rgb-color todavía. Corre chocomazapan-wallpaper-set primero." >&2
+    exit 1
+fi
+
+hex="$(<"$COLOR_FILE")"
+hex="${hex#\#}"
+
+openrgb --mode static --color "$hex"

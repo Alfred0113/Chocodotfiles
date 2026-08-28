@@ -74,9 +74,10 @@ show_setup_menu() {
 }
 
 show_restart_menu() {
-  case $(menu "Restart" "  Hypridle\n󰎟  Mako\n󰌧  Walker\n󰍜  Waybar") in
+  case $(menu "Restart" "  Hypridle\n󰎟  Mako\n󰍝  SwayOSD\n󰌧  Walker\n󰍜  Waybar") in
   *Hypridle*) chocomazapan-restart-hypridle ;;
   *Mako*) chocomazapan-restart-mako ;;
+  *SwayOSD*) chocomazapan-restart-swayosd ;;
   *Walker*) chocomazapan-restart-walker ;;
   *Waybar*) chocomazapan-restart-waybar ;;
   *) back_to show_setup_menu ;;

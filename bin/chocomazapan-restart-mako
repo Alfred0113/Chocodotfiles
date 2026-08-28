@@ -1,5 +1,5 @@
 #!/bin/bash
 
-# meta:summary=Reload mako configuration (used by the Omarchy theme switching).
+# meta:summary=Reload mako configuration (used after regenerating the theme).
 
 makoctl reload

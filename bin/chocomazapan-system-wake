@@ -5,5 +5,5 @@
 # meta:name=wake
 # meta:examples=chocomazapan-system-wake
 
-omarchy-brightness-display on
-omarchy-brightness-keyboard restore
+chocomazapan-brightness-display on
+chocomazapan-brightness-keyboard restore

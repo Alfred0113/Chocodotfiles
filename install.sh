@@ -17,6 +17,8 @@ LINKED_DIRS=(
     "mako:mako"
     "walker:walker"
     "uwsm:uwsm"
+    "alacritty:alacritty"
+    "swayosd:swayosd"
     "theming:theming"
     "theming/engines/matugen:matugen"
     "theming/engines/wallust:wallust"
@@ -72,6 +74,9 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
     echo "Enlazado: $unit_dest -> $unit_src"
 done
 
-echo "Listo. Revisa que tus paquetes (hyprland, waybar, mako, walker, matugen, wallust, swaybg) estén instalados."
+echo "Listo. Revisa que tus paquetes estén instalados:"
+echo "  hyprland waybar mako walker matugen wallust swaybg alacritty swayosd-server openrgb chafa tte"
 echo "Falta copiar tus wallpapers a ~/Imágenes/Wallpapers/ (no viaja en este repo)."
 echo "Corre 'systemctl --user daemon-reload && systemctl --user enable --now chocomazapan-battery-monitor.timer' para activar el monitor de batería."
+echo "Vencord: instala 'vencord-installer-git' (AUR) y corre 'vencordinstallercli -install -branch stable' antes de abrir Discord."
+echo "Obsidian: si tu vault vive en otra ruta en esta máquina, edita VAULT_DIR en bin/chocomazapan-obsidian-sync."

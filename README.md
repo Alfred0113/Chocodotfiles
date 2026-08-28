@@ -28,17 +28,31 @@ git clone <este repo> ~/dotfiles
 - `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
-
-## Pendiente de migrar (aún depende de Omarchy instalado)
-
-- El screensaver (`omarchy-launch-screensaver`, en `hypridle.conf`) y el brillo de teclado/pantalla (`omarchy-brightness-*`, usados por `chocomazapan-system-lock/wake`) — dependen de configs por terminal e integración con SwayOSD.
-- `omarchy-recover-internal-monitor.service` (limpia un toggle de "monitor interno desactivado" cuando no hay pantalla externa) — **no se vendorizó**: depende de un archivo de estado (`~/.local/state/omarchy/toggles/hypr/internal-monitor-disable.lua`) que solo se crea desde el árbol de keybindings por defecto (ver riesgo abajo), que tampoco está portado. Hoy es un no-op (la condición nunca se cumple, es una laptop sin esto configurado). Retomar cuando se porte a la laptop (Fase 8) y se resuelva el árbol de bindings por defecto.
-- `bin/chocomazapan-restart-mako` menciona el flujo de theming en un comentario nada más — sin dependencia real.
+- `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
+- `swayosd/` → `~/.config/swayosd`
 
 ## Notas de la Fase 5 (servicios de fondo)
 
-- `omarchy-bg-carousel.timer` (cambiaba el wallpaper cada 20 min vía `omarchy theme bg next`) quedó **deshabilitado** — chocamaba con `chocomazapan-wallpaper-set`, y de cualquier forma está superado por él (Fase 1b ya cubre el cambio de wallpaper al iniciar sesión).
+- `omarchy-bg-carousel.timer` (cambiaba el wallpaper cada 20 min vía `omarchy theme bg next`) quedó **deshabilitado** — chocaba con `chocomazapan-wallpaper-set`, y de cualquier forma está superado por él (Fase 1b ya cubre el cambio de wallpaper al iniciar sesión).
 - `omarchy-battery-monitor.timer` reemplazado por `chocomazapan-battery-monitor.timer` (mismo intervalo: cada 30s tras 1 min de boot). En este desktop es un no-op (sin batería), pero es real en la laptop.
+
+## Notas de la Fase 6 (theming del resto de apps + screensaver/brillo)
+
+Se investigó qué de la lista original (kitty/foot/ghostty, Zed, Neovim, Obsidian, Discord/Vencord, Chromium, RGB) estaba realmente instalado/activo antes de tocar nada:
+
+- **Alacritty** y **SwayOSD**: dependencias reales confirmadas (`@import`/`general.import` a Omarchy) — repuntadas a `theming/current/` como todo lo demás, con sus templates en `theming/templates/`.
+- **Neovim**: tiene una integración real con el plugin `bjarneo/aether.nvim`, que usa exactamente el mismo esquema de colores que `colors.toml`. Solo se enlaza `~/.config/nvim/lua/plugins/theme.lua -> theming/current/nvim-theme.lua` (no se movió toda la config de nvim al repo, es del usuario y no estaba en git).
+- **Vencord**: no estaba instalado (Discord sí, pero sin mod). Se instaló (`vencord-installer-git` + `vencordinstallercli -install`) y se generó `theming/current/vencord-quickcss.css`, enlazado a `~/.config/Vencord/settings/quickCss.css`. **Falta un paso manual**: activar "Custom CSS/Themes" dentro de la configuración de Vencord en Discord (no se puede automatizar sin abrir la app).
+- **Chromium**: se vendorizó `chocomazapan-theme-set-browser` (pinta el color de la ventana vía policy en `/etc/chromium/policies/managed/`, ese directorio ya es de escritura libre — así lo dejó el instalador de Omarchy).
+- **RGB (RAM/GPU/fans ARGB de la board)**: se detectó hardware real vía OpenRGB (no había RGB de teclado, que es lo que tenía el tema original). Nuevo `chocomazapan-rgb-sync` aplica el color de acento del tema a todo con `openrgb --mode static --color`.
+- **Obsidian**: vault en `~/Documentos/Machiliztli` (ruta específica de esta máquina, ajustar `VAULT_DIR` en `chocomazapan-obsidian-sync` si cambia). Genera y activa un snippet CSS vía `.obsidian/appearance.json`.
+- **Screensaver**: `chocomazapan-screensaver` + `chocomazapan-launch-screensaver` (simplificado — solo soporta Alacritty, el único terminal instalado). El arte ya no es el logo de Omarchy: es la palabra "ChocoMazapan" con degradado naranja→morado, renderizada a imagen con ImageMagick y convertida a arte ANSI con `chafa` (`bin/assets/screensaver.txt`). `hypridle.conf` ya apunta a esto (ya no diferido).
+- **Brillo de teclado/pantalla**: `chocomazapan-brightness-{keyboard,display}` + `chocomazapan-swayosd-{client,brightness,kbd-brightness}` vendorizados (se quitó la rama específica de hardware Apple, no aplica aquí). `chocomazapan-system-lock`/`wake` ya los usan.
+
+Todo lo anterior (excepto Obsidian, que solo corre cuando se le pide) se ejecuta automáticamente dentro de `chocomazapan-wallpaper-set` cada vez que cambia el wallpaper.
+
+**No vendorizado, documentado y con razón:**
+- `omarchy-recover-internal-monitor.service` — depende de un toggle que solo crea el árbol de keybindings por defecto (ver riesgo abajo), no portado. No-op en este desktop. Retomar en la Fase 8 (laptop).
 
 ## ⚠️ Riesgo grande a investigar antes de la Fase 7 (desinstalar Omarchy)
 
