@@ -30,6 +30,7 @@ git clone <este repo> ~/dotfiles
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
 - `swayosd/` → `~/.config/swayosd`
+- `fastfetch/` → `~/.config/fastfetch` — logo propio (`bin/assets/logo.txt`), OS/wallpaper-activo/actualizaciones-pendientes reales (ver "Corte final" — antes usaba comandos de versión de Omarchy)
 - `quickshell/select-by-image.qml` — el selector visual de wallpaper (carrusel de tarjetas, ver abajo). No se symlinkea a ningún `~/.config`; `chocomazapan-menu-images` lo referencia directo por su ruta dentro del repo.
 
 ## Theming dinámico

@@ -19,6 +19,7 @@ LINKED_DIRS=(
     "uwsm:uwsm"
     "alacritty:alacritty"
     "swayosd:swayosd"
+    "fastfetch:fastfetch"
     "theming:theming"
     "theming/engines/matugen:matugen"
     "theming/engines/wallust:wallust"
@@ -75,8 +76,14 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
 done
 
 echo "Listo. Revisa que tus paquetes estén instalados:"
-echo "  hyprland waybar mako walker aether awww alacritty swayosd-server openrgb chafa tte imagemagick quickshell socat"
+echo "  hyprland waybar mako walker aether awww alacritty swayosd-server openrgb chafa tte imagemagick quickshell socat fastfetch"
+echo "  ttf-jetbrains-mono-nerd (fuente usada en waybar/walker/selector/fastfetch — sin ella los íconos salen rotos)"
+echo "  elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications"
+echo "  elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols"
+echo "  elephant-todo elephant-unicode elephant-websearch (proveedores de datos de walker, van aparte)"
 echo "Falta copiar tus wallpapers a ~/Imágenes/Wallpapers/ (no viaja en este repo)."
 echo "Corre 'systemctl --user daemon-reload && systemctl --user enable --now chocomazapan-battery-monitor.timer' para activar el monitor de batería."
 echo "Vencord: instala 'vencord-installer-git' (AUR) y corre 'vencordinstallercli -install -branch stable' antes de abrir Discord."
 echo "Obsidian: si tu vault vive en otra ruta en esta máquina, edita VAULT_DIR en bin/chocomazapan-obsidian-sync."
+echo "Windows VM (chocomazapan-windows-vm): el docker-compose.yml y los discos NO viajan en este repo (son de esta"
+echo "  máquina). En una máquina nueva corre 'chocomazapan-windows-vm install' para configurarlo desde cero."
