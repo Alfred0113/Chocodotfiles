@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# meta:summary=Toggle the gsimplecal popup calendar (bound to waybar's calendar icon)
+# meta:summary=Toggle the calendar popup (QuickShell, bound to waybar's calendar icon)
 
-if pgrep -x gsimplecal >/dev/null; then
-    pkill -x gsimplecal
+if pgrep -f "quickshell.*calendar-popup.qml" >/dev/null; then
+    pkill -f "quickshell.*calendar-popup.qml"
 else
-    setsid uwsm-app -- gsimplecal >/dev/null 2>&1 &
+    setsid uwsm-app -- quickshell -p "$HOME/dotfiles/quickshell/calendar-popup.qml" >/dev/null 2>&1 &
     disown
 fi
