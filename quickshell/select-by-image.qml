@@ -275,7 +275,14 @@ ShellRoot {
     root.select(root.selectedImageIndex(), true)
     root.imagesLoaded = true
     root.opened = true
-    root.refreshPreviewPalette()
+    // Qt.callLater (no llamada directa): en un quickshell recién arrancado
+    // en frío (primera vez que se abre el selector en la sesión), lanzar el
+    // Process de aether en la misma pasada síncrona que procesa la
+    // petición del socket a veces no arranca (el bug que reportó el
+    // usuario: sin puntos al abrir, sí al cambiar imagen/modo después).
+    // Encolarlo para la siguiente vuelta del event loop le da tiempo al
+    // resto de la inicialización de quickshell a asentarse primero.
+    Qt.callLater(root.refreshPreviewPalette)
     carousel.forceActiveFocus()
   }
 
