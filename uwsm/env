@@ -1,10 +1,7 @@
 # Changes require a restart to take effect.
 
-# Ensure ChocoMazapan (own dotfiles) bins are in the path. OMARCHY_PATH is
-# still needed while Omarchy stays installed (Hyprland's Lua config loader
-# reads modules from it) — remove once Omarchy is fully retired.
-export OMARCHY_PATH=$HOME/.local/share/omarchy
-export PATH=$HOME/dotfiles/bin:$OMARCHY_PATH/bin:$PATH:$HOME/.local/bin
+# Ensure ChocoMazapan (own dotfiles) bins are in the path.
+export PATH=$HOME/dotfiles/bin:$PATH:$HOME/.local/bin
 
 # Set default terminal and editor
 source ~/.config/uwsm/default

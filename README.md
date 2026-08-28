@@ -20,53 +20,42 @@ git clone <este repo> ~/dotfiles
 - `waybar/` → `~/.config/waybar`
 - `mako/` → `~/.config/mako`
 - `walker/` → `~/.config/walker`
-- `theming/` → `~/.config/theming` — sistema de tema din��mico:
+- `theming/` → `~/.config/theming` — sistema de tema dinámico:
   - `engines/{matugen,wallust}/` → `~/.config/{matugen,wallust}` — configs de los dos motores de extracción de color
-  - `templates/` → plantillas propias (waybar.css, mako, walker.css) que leen `current/colors.toml`
+  - `templates/` → plantillas propias (waybar.css, mako, walker.css, vencord-quickcss.css) que leen `current/colors.toml`
   - `current/` → estado generado (no versionado): paleta activa + assets derivados
   - `themes/aether/` → paleta estática vendorizada de referencia, ya no es el mecanismo activo
-- `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
+- `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
 - `swayosd/` → `~/.config/swayosd`
 
-## Notas de la Fase 5 (servicios de fondo)
+## Theming dinámico
 
-- `omarchy-bg-carousel.timer` (cambiaba el wallpaper cada 20 min vía `omarchy theme bg next`) quedó **deshabilitado** — chocaba con `chocomazapan-wallpaper-set`, y de cualquier forma está superado por él (Fase 1b ya cubre el cambio de wallpaper al iniciar sesión).
-- `omarchy-battery-monitor.timer` reemplazado por `chocomazapan-battery-monitor.timer` (mismo intervalo: cada 30s tras 1 min de boot). En este desktop es un no-op (sin batería), pero es real en la laptop.
+`chocomazapan-wallpaper-set` es el comando central: elige (o recibe al azar) un wallpaper de `~/Imágenes/Wallpapers/`, lo aplica con `swaybg`, corre el motor de extracción de color elegido (matugen o wallust) y genera `theming/current/colors.toml`. `chocomazapan-apply-theme` (Python) toma ese `colors.toml` y renderiza las plantillas de `theming/templates/` hacia `theming/current/`: waybar, mako, walker, Alacritty, SwayOSD, Neovim (vía `bjarneo/aether.nvim`), Vencord/Discord, Chromium, Obsidian y RGB (OpenRGB, RAM/GPU/fans ARGB de la board). Todo esto corre automático en cada cambio de wallpaper, salvo Obsidian que solo corre cuando se le pide.
 
-## Notas de la Fase 6 (theming del resto de apps + screensaver/brillo)
+El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en degradado accent→foreground sobre el fondo del tema activo, renderizado a arte ANSI con `chafa`.
 
-Se investigó qué de la lista original (kitty/foot/ghostty, Zed, Neovim, Obsidian, Discord/Vencord, Chromium, RGB) estaba realmente instalado/activo antes de tocar nada:
+## Servicios de fondo
 
-- **Alacritty** y **SwayOSD**: dependencias reales confirmadas (`@import`/`general.import` a Omarchy) — repuntadas a `theming/current/` como todo lo demás, con sus templates en `theming/templates/`.
-- **Neovim**: tiene una integración real con el plugin `bjarneo/aether.nvim`, que usa exactamente el mismo esquema de colores que `colors.toml`. Solo se enlaza `~/.config/nvim/lua/plugins/theme.lua -> theming/current/nvim-theme.lua` (no se movió toda la config de nvim al repo, es del usuario y no estaba en git).
-- **Vencord**: no estaba instalado (Discord sí, pero sin mod). Se instaló (`vencord-installer-git` + `vencordinstallercli -install`) y se generó `theming/current/vencord-quickcss.css`, enlazado a `~/.config/Vencord/settings/quickCss.css`. **Falta un paso manual**: activar "Custom CSS/Themes" dentro de la configuración de Vencord en Discord (no se puede automatizar sin abrir la app).
-- **Chromium**: se vendorizó `chocomazapan-theme-set-browser` (pinta el color de la ventana vía policy en `/etc/chromium/policies/managed/`, ese directorio ya es de escritura libre — así lo dejó el instalador de Omarchy).
-- **RGB (RAM/GPU/fans ARGB de la board)**: se detectó hardware real vía OpenRGB (no había RGB de teclado, que es lo que tenía el tema original). Nuevo `chocomazapan-rgb-sync` aplica el color de acento del tema a todo con `openrgb --mode static --color`.
-- **Obsidian**: vault en `~/Documentos/Machiliztli` (ruta específica de esta máquina, ajustar `VAULT_DIR` en `chocomazapan-obsidian-sync` si cambia). Genera y activa un snippet CSS vía `.obsidian/appearance.json`.
-- **Screensaver**: `chocomazapan-screensaver` + `chocomazapan-launch-screensaver` (simplificado — solo soporta Alacritty, el único terminal instalado). El arte ya no es el logo de Omarchy: es la palabra "ChocoMazapan" con degradado accent→foreground, renderizada a imagen con ImageMagick y convertida a arte ANSI con `chafa`. El fondo cambia con el tema (`chocomazapan-screensaver-art` lo regenera con `background` del tema actual en cada cambio de wallpaper, escribe a `theming/current/screensaver.txt`; `bin/assets/screensaver.txt` queda como respaldo estático por si aún no corrió ningún `chocomazapan-wallpaper-set`). `hypridle.conf` ya apunta a esto (ya no diferido).
-- **Brillo de teclado/pantalla**: `chocomazapan-brightness-{keyboard,display}` + `chocomazapan-swayosd-{client,brightness,kbd-brightness}` vendorizados (se quitó la rama específica de hardware Apple, no aplica aquí). `chocomazapan-system-lock`/`wake` ya los usan.
+`chocomazapan-battery-monitor.{service,timer}` (cada 30s tras 1 min de boot) es el único servicio propio activo hoy — no-op en este desktop (sin batería), real en la laptop.
 
-Todo lo anterior (excepto Obsidian, que solo corre cuando se le pide) se ejecuta automáticamente dentro de `chocomazapan-wallpaper-set` cada vez que cambia el wallpaper.
+## Windows VM
 
-**No vendorizado, documentado y con razón:**
-- `omarchy-recover-internal-monitor.service` — depende de un toggle que solo crea el árbol de keybindings por defecto (ver riesgo abajo), no portado. No-op en este desktop. Retomar en la Fase 8 (laptop).
+`chocomazapan-windows-vm` (install/remove/launch/stop/status) administra una VM de Windows vía Docker + RDP, lanzada desde el `.desktop` "Windows". El nombre del contenedor Docker (`omarchy-windows` en `docker-compose.yml`) y sus datos (`~/.windows`, `~/Windows`) se dejaron intactos tal como ya estaban provisionados en esta máquina — renombrarlos implicaría recrear el contenedor.
 
-## Notas de la Fase 7a (portar el árbol de keybindings/config por defecto)
+## Riesgo Hyprland Lua resuelto (ver historial de commits para el detalle)
 
-El riesgo grande que se arrastraba desde las Fases 4/6 quedó resuelto: `pacman -Qo /usr/share/hypr/stubs/hl.meta.lua` confirma que el runtime Lua de Hyprland (`hl.*`) es 100% nativo del paquete `hyprland`, autogenerado por el propio compositor — no depende de Omarchy en absoluto. El wrapper `o.*` (usado en todo el árbol de bindings por defecto) resultó ser solo 103 líneas propias de Omarchy sobre `hl.bind`, mecánicamente portable.
+El runtime Lua de Hyprland (`hl.*`, usado en todos los `.lua` de este repo) es nativo del paquete `hyprland` — no depende de ninguna distro de dotfiles de terceros. El árbol completo de configuración por defecto (autostart, envs, looknfeel, input, windows, reglas de ventana por app, bindings de clipboard/tiling/media/utilidades) vive en `hypr/core/`.
 
-Se portó el árbol completo `default/hypr` (~600 líneas) a `hypr/core/`: `paths`, `helpers` (el wrapper `o.*`), `autostart`, `envs`, `looknfeel`, `input`, `windows`, `toggles`, `require_all`, más `apps/` (19 archivos de reglas de ventana por app, con los app-id `org.omarchy.*` renombrados a `org.chocomazapan.*`) y los bindings de `clipboard`/`tiling-v2`/`media`/`utilities`. `hyprland.lua` ya no usa `$OMARCHY_PATH` ni carga nada de Omarchy. `~/.local/state/chocomazapan/toggles/hypr/` reemplaza la ruta de estado de Omarchy para los toggles (gaps, aspect-ratio).
+## Corte final
 
-## Notas de la Fase 7b (vendorizar los scripts que faltaban)
+La distro de dotfiles usada como referencia ya no está instalada en esta máquina: se quitaron sus directorios (`~/.local/share`, `~/.config`), su paquete de Neovim preempaquetado (no se usaba — la config real de Neovim es propia), sus tres servicios systemd de usuario (reemplazados o dados de baja en fases previas), y su ruta del PATH en `uwsm/env`. De paso se repuntaron o limpiaron varios usuarios sueltos que quedaban fuera de este repo y que dependían de ella: un hook de pacman que reinicia Walker tras actualizaciones, un `.desktop` de Tetris, una función fish (`waybarestart`), el visor de compartir pantalla (`hyprland-preview-share-picker`, quedó sin stylesheet propio — usa el tema GTK por defecto), `fastfetch` (usaba comandos de versión/tema que ya no existen — ahora muestra el OS real, el wallpaper activo, y el conteo real de actualizaciones pendientes vía `checkupdates`), y 8 wrappers de CLIs de IA en `~/.local/bin/` (opencode, gemini, codex, copilot, etc.) que auto-instalaban pnpm/bun a través de ella.
 
-Se vendorizaron los ~28 scripts que habían quedado marcados `TODO Fase 7b` en `hypr/core/bindings/{media,utilities}.lua`: mostrar keybindings de Hyprland (`SUPER+K`) y de Tmux (`SUPER+ALT+K`), toggle/posición de waybar, toggle de transparencia/gaps/aspecto de ventana, nightlight, mic-mute, audio-output-switch, toggle de touchpad, OCR de captura, transcode, y notificaciones de hora/batería/clima. Todo activado en `hypr/core/bindings/{media,utilities}.lua` — probado en vivo (194 keybindings cargados sin conflicto tras el reload).
+**Pérdida real, sin arreglo posible:** una extensión pequeña de Chromium/Edge ("copy-url", copiaba la URL de la pestaña activa) vivía solo dentro de esos directorios y se perdió al borrarlos — nunca se vendorizó porque no apareció en el inventario de apps de la Fase 6. Se quitó la línea `--load-extension=` de `chromium-flags.conf` y `microsoft-edge-stable-flags.conf` a petición explícita, sin reemplazo.
 
-De paso se limpió un `omarchy-menu-tmux-keybindings` que quedaba vivo en `~/.config/tmux/tmux.conf` (atajo `PREFIX + ?`, fuera de este repo — es config propia del usuario) y se vendorizó localmente el CSS de tema de Discord (`theming/templates/vencord-quickcss.css.template`), que antes traía un `@import` a una URL externa llamada `omarchy-discord.theme.css`; ahora el CSS está inlineado en la plantilla, sin dependencia de red y sin la palabra "omarchy".
-
-Lo laptop-only (`chocomazapan-powerprofiles-init`, `chocomazapan-hyprland-monitor-watch`, toggle de monitor interno/mirror, lid switch) se queda diferido a la Fase 8, marcado explícito en `hypr/core/autostart.lua` y `hypr/core/bindings/utilities.lua`.
+No se tocaron: drivers NVIDIA (`chwd`), fish shell, ni el paquete `hyprland` — son independientes de la distro de referencia aunque vinieran del mismo instalador de terceros.
 
 ## Crédito
 
