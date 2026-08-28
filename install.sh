@@ -48,5 +48,30 @@ for pair in "${LINKED_DIRS[@]}"; do
     echo "Enlazado: $dest -> $src"
 done
 
+# Unidades systemd --user individuales (no se enlaza la carpeta completa
+# porque ahí también viven otras unidades ajenas a este repo).
+SYSTEMD_DIR="$CONFIG_DIR/systemd/user"
+mkdir -p "$SYSTEMD_DIR"
+for unit_src in "$REPO_DIR"/systemd/user/*; do
+    [ -f "$unit_src" ] || continue
+    unit_name="$(basename "$unit_src")"
+    unit_dest="$SYSTEMD_DIR/$unit_name"
+
+    if [ -L "$unit_dest" ] && [ "$(readlink -f "$unit_dest")" = "$(readlink -f "$unit_src")" ]; then
+        echo "OK: $unit_dest ya apunta a $unit_src"
+        continue
+    fi
+
+    if [ -e "$unit_dest" ] || [ -L "$unit_dest" ]; then
+        backup="${unit_dest}.pre-dotfiles-bak"
+        echo "Respaldando $unit_dest -> $backup"
+        mv "$unit_dest" "$backup"
+    fi
+
+    ln -s "$unit_src" "$unit_dest"
+    echo "Enlazado: $unit_dest -> $unit_src"
+done
+
 echo "Listo. Revisa que tus paquetes (hyprland, waybar, mako, walker, matugen, wallust, swaybg) estén instalados."
 echo "Falta copiar tus wallpapers a ~/Imágenes/Wallpapers/ (no viaja en este repo)."
+echo "Corre 'systemctl --user daemon-reload && systemctl --user enable --now chocomazapan-battery-monitor.timer' para activar el monitor de batería."
