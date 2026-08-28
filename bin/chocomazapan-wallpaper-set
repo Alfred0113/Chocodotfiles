@@ -1,0 +1,108 @@
+#!/bin/bash
+# Selecciona un wallpaper (de ~/Imágenes/Wallpapers), lo pone de fondo con
+# swaybg, y genera theming/current/colors.toml a partir de esa imagen usando
+# matugen o wallust.
+#
+# Uso:
+#   chocomazapan-wallpaper-set                       -> selector interactivo (imagen + motor)
+#   chocomazapan-wallpaper-set random [motor]         -> imagen al azar
+#   chocomazapan-wallpaper-set <archivo|nombre> [motor]
+
+set -euo pipefail
+
+WALLPAPER_DIR="$HOME/Imágenes/Wallpapers"
+CURRENT_DIR="$HOME/dotfiles/theming/current"
+ENGINE_STATE_FILE="$CURRENT_DIR/engine"
+
+mkdir -p "$CURRENT_DIR"
+
+image_arg="${1:-}"
+engine_arg="${2:-}"
+
+list_images() {
+    find "$WALLPAPER_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \)
+}
+
+pick_random_image() {
+    list_images | shuf -n1
+}
+
+pick_image_interactive() {
+    local choice
+    choice=$(
+        {
+            echo "🎲 Aleatorio"
+            list_images | xargs -d '\n' -n1 basename
+        } | walker -d -p "Elige wallpaper"
+    )
+    [ -n "$choice" ] || exit 1
+    if [ "$choice" = "🎲 Aleatorio" ]; then
+        pick_random_image
+    else
+        echo "$WALLPAPER_DIR/$choice"
+    fi
+}
+
+pick_engine_interactive() {
+    local choice
+    choice=$(printf 'matugen\nwallust\n' | walker -d -p "Motor de color (matugen/wallust)")
+    [ -n "$choice" ] || exit 1
+    echo "$choice"
+}
+
+# Resolver imagen.
+if [ "$image_arg" = "random" ] || [ "$image_arg" = "--random" ]; then
+    image="$(pick_random_image)"
+elif [ -n "$image_arg" ]; then
+    if [ -f "$image_arg" ]; then
+        image="$image_arg"
+    else
+        image="$WALLPAPER_DIR/$image_arg"
+    fi
+else
+    image="$(pick_image_interactive)"
+    if [ -z "$engine_arg" ]; then
+        engine_arg="$(pick_engine_interactive)"
+    fi
+fi
+
+if [ ! -f "$image" ]; then
+    echo "Imagen no encontrada: $image" >&2
+    exit 1
+fi
+
+# Resolver motor.
+if [ -n "$engine_arg" ]; then
+    engine="$engine_arg"
+elif [ -f "$ENGINE_STATE_FILE" ]; then
+    engine="$(cat "$ENGINE_STATE_FILE")"
+else
+    engine="matugen"
+fi
+
+if [ "$engine" != "matugen" ] && [ "$engine" != "wallust" ]; then
+    echo "Motor inválido: $engine (usa matugen o wallust)" >&2
+    exit 1
+fi
+
+# Poner el wallpaper.
+pkill -x swaybg 2>/dev/null || true
+sleep 0.2
+setsid swaybg -i "$image" -m fill >/dev/null 2>&1 &
+disown
+
+# Generar la paleta desde la imagen.
+case "$engine" in
+    matugen)
+        matugen image "$image" --mode dark --prefer saturation
+        ;;
+    wallust)
+        wallust run "$image"
+        ;;
+esac
+
+ln -sfn "$image" "$CURRENT_DIR/wallpaper"
+echo "$engine" > "$ENGINE_STATE_FILE"
+
+echo "Wallpaper: $(basename "$image")"
+echo "Motor: $engine"

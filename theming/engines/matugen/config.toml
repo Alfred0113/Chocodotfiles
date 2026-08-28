@@ -1,0 +1,5 @@
+[config]
+
+[templates.chocomazapan_colors]
+input_path = '~/dotfiles/theming/engines/matugen/templates/colors.toml.template'
+output_path = '~/dotfiles/theming/current/colors.toml'

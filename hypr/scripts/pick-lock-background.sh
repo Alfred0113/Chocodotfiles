@@ -1,27 +1,42 @@
 #!/bin/bash
-# Picks a random wallpaper (>=1920x1080) from the active theme's
-# backgrounds folder, for use as hyprlock's background via reload_cmd.
+# Picks a random wallpaper (>=1920x1080) from ~/Imágenes/Wallpapers,
+# for use as hyprlock's background via reload_cmd.
+#
+# Scanning every image with `identify` on each lock is too slow once the
+# folder has many/large files, so the list of valid (big enough) images is
+# cached and only rebuilt when the folder's contents change.
 
-BG_DIR="$HOME/dotfiles/theming/current/backgrounds"
+BG_DIR="$HOME/Imágenes/Wallpapers"
+CACHE_FILE="$HOME/dotfiles/theming/current/lockscreen-bg-cache"
 MIN_W=1920
 MIN_H=1080
 
-candidates=()
-while IFS= read -r -d '' file; do
-    dims=$(identify -format "%w %h" "$file" 2>/dev/null) || continue
-    w=${dims% *}
-    h=${dims#* }
-    [ "$w" -ge "$MIN_W" ] && [ "$h" -ge "$MIN_H" ] && candidates+=("$file")
-done < <(find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) -print0 2>/dev/null)
+mkdir -p "$(dirname "$CACHE_FILE")"
 
-if [ ${#candidates[@]} -eq 0 ]; then
+dir_signature() {
+    find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) -printf '%f %s\n' 2>/dev/null | sort | md5sum
+}
+
+rebuild_cache() {
+    : > "$CACHE_FILE"
     while IFS= read -r -d '' file; do
-        candidates+=("$file")
-    done < <(find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) -print0 2>/dev/null)
+        dims=$(identify -format "%w %h" "$file" 2>/dev/null) || continue
+        w=${dims% *}
+        h=${dims#* }
+        [ "$w" -ge "$MIN_W" ] && [ "$h" -ge "$MIN_H" ] && echo "$file" >> "$CACHE_FILE"
+    done < <(find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) -print0 2>/dev/null)
+    dir_signature > "$CACHE_FILE.sig"
+}
+
+current_sig="$(dir_signature)"
+cached_sig="$(cat "$CACHE_FILE.sig" 2>/dev/null || echo "")"
+
+if [ ! -f "$CACHE_FILE" ] || [ "$current_sig" != "$cached_sig" ]; then
+    rebuild_cache
 fi
 
-if [ ${#candidates[@]} -eq 0 ]; then
-    find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) 2>/dev/null | head -n1
+if [ -s "$CACHE_FILE" ]; then
+    shuf -n1 "$CACHE_FILE"
 else
-    echo "${candidates[$((RANDOM % ${#candidates[@]}))]}"
+    find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) 2>/dev/null | head -n1
 fi
