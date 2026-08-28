@@ -1,0 +1,42 @@
+#!/bin/bash
+# Selecciona el tema activo en ~/dotfiles/theming/current.
+# Uso: chocomazapan-theme-set <nombre>   (o "next" / sin argumentos para rotar)
+
+set -euo pipefail
+
+THEMING_DIR="$HOME/dotfiles/theming"
+THEMES_DIR="$THEMING_DIR/themes"
+CURRENT_LINK="$THEMING_DIR/current"
+
+mapfile -t themes < <(find "$THEMES_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+
+if [ ${#themes[@]} -eq 0 ]; then
+    echo "No hay temas en $THEMES_DIR" >&2
+    exit 1
+fi
+
+target="${1:-next}"
+
+if [ "$target" = "next" ]; then
+    current_name=""
+    if [ -L "$CURRENT_LINK" ]; then
+        current_name="$(basename "$(readlink -f "$CURRENT_LINK")")"
+    fi
+
+    next_index=0
+    for i in "${!themes[@]}"; do
+        if [ "${themes[$i]}" = "$current_name" ]; then
+            next_index=$(( (i + 1) % ${#themes[@]} ))
+            break
+        fi
+    done
+    target="${themes[$next_index]}"
+fi
+
+if [ ! -d "$THEMES_DIR/$target" ]; then
+    echo "Tema '$target' no existe. Disponibles: ${themes[*]}" >&2
+    exit 1
+fi
+
+ln -sfn "$THEMES_DIR/$target" "$CURRENT_LINK"
+echo "Tema activo: $target"

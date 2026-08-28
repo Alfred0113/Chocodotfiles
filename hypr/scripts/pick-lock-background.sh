@@ -1,8 +1,8 @@
 #!/bin/bash
-# Picks a random wallpaper (>=1920x1080) from the active Omarchy theme's
+# Picks a random wallpaper (>=1920x1080) from the active theme's
 # backgrounds folder, for use as hyprlock's background via reload_cmd.
 
-BG_DIR="$HOME/.config/omarchy/current/theme/backgrounds"
+BG_DIR="$HOME/dotfiles/theming/current/backgrounds"
 MIN_W=1920
 MIN_H=1080
 
@@ -21,7 +21,7 @@ if [ ${#candidates[@]} -eq 0 ]; then
 fi
 
 if [ ${#candidates[@]} -eq 0 ]; then
-    readlink -f "$HOME/.config/omarchy/current/background"
+    find "$BG_DIR" -maxdepth 1 -type f \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \) 2>/dev/null | head -n1
 else
     echo "${candidates[$((RANDOM % ${#candidates[@]}))]}"
 fi
