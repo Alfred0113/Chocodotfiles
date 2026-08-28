@@ -2,9 +2,23 @@
 
 # meta:summary=Toggle the calendar popup (QuickShell, bound to waybar's calendar icon)
 
-if pgrep -f "quickshell.*calendar-popup.qml" >/dev/null; then
-    pkill -f "quickshell.*calendar-popup.qml"
+QML="$HOME/dotfiles/quickshell/calendar-popup.qml"
+pid=$(pgrep -f "quickshell -p $QML" | head -1)
+
+if [[ -n $pid ]]; then
+    # Si el QML se editó después de que este proceso arrancó, está corriendo
+    # una versión vieja (quickshell no recarga el archivo solo) — se mata y
+    # se relanza en vez de solo cerrarlo, para no mostrar contenido viejo.
+    proc_start=$(stat -c %Y "/proc/$pid" 2>/dev/null || echo 0)
+    qml_mtime=$(stat -c %Y "$QML" 2>/dev/null || echo 0)
+
+    kill "$pid" 2>/dev/null
+    if (( qml_mtime > proc_start )); then
+        sleep 0.2
+        setsid uwsm-app -- quickshell -p "$QML" >/dev/null 2>&1 &
+        disown
+    fi
 else
-    setsid uwsm-app -- quickshell -p "$HOME/dotfiles/quickshell/calendar-popup.qml" >/dev/null 2>&1 &
+    setsid uwsm-app -- quickshell -p "$QML" >/dev/null 2>&1 &
     disown
 fi
