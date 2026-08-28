@@ -112,6 +112,7 @@ show_main_menu() {
 go_to_menu() {
   case "${1,,}" in
   *apps*) walker -p "Launch…" ;;
+  *screenrecord*) show_screenrecord_menu ;;
   *capture*) show_capture_menu ;;
   *toggle*) show_toggle_menu ;;
   *setup*) show_setup_menu ;;
