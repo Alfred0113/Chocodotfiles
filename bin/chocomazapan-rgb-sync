@@ -2,6 +2,10 @@
 # Applies the current theme's accent color to all OpenRGB-controllable
 # hardware (RAM, GPU, motherboard ARGB headers/fans, etc.) as a static color.
 
+if chocomazapan-toggle-enabled rgb-sync-off; then
+    exit 0
+fi
+
 COLOR_FILE="$HOME/dotfiles/theming/current/rgb-color"
 
 if [[ ! -f $COLOR_FILE ]]; then
@@ -12,4 +16,19 @@ fi
 hex="$(<"$COLOR_FILE")"
 hex="${hex#\#}"
 
-openrgb --mode static --color "$hex"
+if openrgb --mode static --color "$hex" >/tmp/chocomazapan-rgb-sync.log 2>&1; then
+    exit 0
+fi
+
+# OpenRGB a veces falla de forma intermitente (bus I2C ocupado, dispositivo
+# HID que perdió permisos tras un re-enumerado, etc.) — un solo reintento
+# cubre la mayoría de esos casos transitorios.
+sleep 1
+if openrgb --mode static --color "$hex" >>/tmp/chocomazapan-rgb-sync.log 2>&1; then
+    exit 0
+fi
+
+chocomazapan-notification-send -g 󰐊 -u normal \
+    "OpenRGB no pudo aplicar el color" \
+    "Revisa /tmp/chocomazapan-rgb-sync.log" || true
+exit 1

@@ -1,3 +1,4 @@
 @define-color background {{background}};
 @define-color foreground {{foreground}};
+@define-color accent {{accent}};
 @define-color alert {{color1}};

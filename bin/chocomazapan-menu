@@ -51,11 +51,12 @@ show_screenrecord_menu() {
   esac
 }
 
-# Quick on/off switches: idle-lock and notification do-not-disturb.
+# Quick on/off switches: idle-lock, notification do-not-disturb, and RGB sync.
 show_toggle_menu() {
-  case $(menu "Toggle" "󱫖  Idle Lock\n󰂛  Notifications") in
+  case $(menu "Toggle" "󱫖  Idle Lock\n󰂛  Notifications\n󰐊  RGB Sync") in
   *Idle*) chocomazapan-toggle-idle ;;
   *Notifications*) chocomazapan-toggle-notification-silencing ;;
+  *RGB*) chocomazapan-toggle-rgb-sync ;;
   *) back_to show_main_menu ;;
   esac
 }

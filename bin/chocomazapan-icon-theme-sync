@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Elige la variante de color de Yaru (tema de iconos de carpetas de Nautilus)
+mas cercana al acento actual del tema, generado desde theming/current/colors.toml.
+
+Yaru no soporta un hex arbitrario -- solo trae 9 variantes de color fijas. Los
+colores de referencia de abajo se sacaron directo de los folder.png instalados
+(256x256/places/folder.png de cada Yaru-<color>), no son valores adivinados.
+"""
+
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+COLORS_FILE = Path.home() / "dotfiles" / "theming" / "current" / "colors.toml"
+
+YARU_PALETTE = {
+    "blue": (0x26, 0x86, 0xE6),
+    "magenta": (0xBC, 0x65, 0xBD),
+    "olive": (0x66, 0x94, 0x27),
+    "prussiangreen": (0x4E, 0x92, 0x91),
+    "purple": (0x8A, 0x79, 0xDC),
+    "red": (0xDD, 0x51, 0x69),
+    "sage": (0x7C, 0x8C, 0x7F),
+    "wartybrown": (0xA0, 0x83, 0x67),
+    "yellow": (0xB1, 0x7D, 0x26),
+}
+
+
+def hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
+    hex_str = hex_str.lstrip("#")
+    return tuple(int(hex_str[i : i + 2], 16) for i in (0, 2, 4))
+
+
+def main() -> int:
+    if not COLORS_FILE.exists():
+        print(f"No existe {COLORS_FILE}. Corre chocomazapan-wallpaper-set primero.", file=sys.stderr)
+        return 1
+
+    colors = tomllib.loads(COLORS_FILE.read_text())
+    accent = hex_to_rgb(colors["accent"])
+
+    closest = min(
+        YARU_PALETTE,
+        key=lambda name: sum((a - b) ** 2 for a, b in zip(accent, YARU_PALETTE[name])),
+    )
+
+    theme_name = f"Yaru-{closest}"
+    subprocess.run(
+        ["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", theme_name],
+        check=True,
+    )
+    print(f"Tema de iconos: {theme_name} (acento {colors['accent']})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

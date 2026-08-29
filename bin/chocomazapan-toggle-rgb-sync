@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# meta:summary=Toggle automatic OpenRGB sync on wallpaper/theme changes
+
+chocomazapan-toggle \
+  --enabled-notification "󰐊    RGB sync desactivado" \
+  --disabled-notification "󰐊    RGB sync activado" \
+  rgb-sync-off

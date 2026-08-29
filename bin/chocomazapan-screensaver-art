@@ -1,5 +1,5 @@
 #!/bin/bash
-# Regenerates the screensaver ANSI art ("ChocoMazapan" text) from the current
+# Regenerates the screensaver ANSI art ("AlfredoPC" text) from the current
 # theme's colors, so the background is solid and matches the theme instead of
 # a fixed color or a transparency-threshold render (which looked speckled).
 
@@ -8,6 +8,14 @@ set -euo pipefail
 COLORS_FILE="$HOME/dotfiles/theming/current/colors.toml"
 OUT_TXT="$HOME/dotfiles/theming/current/screensaver.txt"
 FONT="/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Bold.ttf"
+CUSTOM_IMAGE="$HOME/dotfiles/theming/screensaver-custom.png"
+
+# Si el usuario puso su propia imagen aquí, se usa tal cual (vía chafa) en
+# vez de generar el texto degradado "AlfredoPC".
+if [[ -f $CUSTOM_IMAGE ]]; then
+    chafa -f symbols -c full --size=120x30 "$CUSTOM_IMAGE" > "$OUT_TXT"
+    exit 0
+fi
 
 [[ -f $COLORS_FILE ]] || exit 0
 
@@ -22,15 +30,15 @@ accent="$(get_color accent)"
 [[ $fg =~ ^#[0-9a-fA-F]{6}$ ]] || fg="#ffffff"
 [[ $accent =~ ^#[0-9a-fA-F]{6}$ ]] || accent="#7C3AED"
 
-W=1400
-H=350
+W=5000
+H=2000
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 magick -size "${W}x${H}" "xc:$bg" "$tmp_dir/base.png"
 magick -size "${W}x${H}" gradient:"$accent-$fg" "$tmp_dir/grad.png"
-magick -size "${W}x${H}" xc:black -gravity center -font "$FONT" -pointsize 120 \
-    -fill white -annotate +0+0 "ChocoMazapan" "$tmp_dir/mask.png"
+magick -size "${W}x${H}" xc:black -gravity center -font "$FONT" -pointsize 900 \
+    -fill white -annotate +0+0 "Alfred_PC" "$tmp_dir/mask.png"
 magick "$tmp_dir/grad.png" "$tmp_dir/mask.png" -compose CopyOpacity -composite "$tmp_dir/text.png"
 magick "$tmp_dir/base.png" "$tmp_dir/text.png" -compose Over -composite "$tmp_dir/final.png"
 

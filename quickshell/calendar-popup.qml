@@ -12,14 +12,15 @@ ShellRoot {
   property color foreground: "#cacccc"
 
   property int width_: 300
-  property int rBottom: 18
-  property int rTop: 40
+  property int rBottom: 14
+  property int rTop: 28
   property int headerH: 44
   property int weekdayH: 26
   property int cellH: 34
   property int rows: 6
   property int bodyH: weekdayH + cellH * rows + 10
   property int totalH: headerH + bodyH
+  property int totalW: width_ + 2 * rTop
 
   property var displayed: new Date()
   property var today: new Date()
@@ -88,7 +89,7 @@ ShellRoot {
     id: panel
     anchors { top: true }
     margins { top: 30 }
-    implicitWidth: root.width_
+    implicitWidth: root.totalW
     implicitHeight: root.totalH
     color: "transparent"
     WlrLayershell.namespace: "chocomazapan-calendar"
@@ -113,58 +114,60 @@ ShellRoot {
 
         readonly property real rt: root.rTop
         readonly property real rb: root.rBottom
-        readonly property real w: root.width_
+        readonly property real w: root.totalW
         readonly property real h: root.totalH
 
-        // Solo la esquina arriba-izquierda es cóncava (la más cercana al
-        // ícono, se "pega" a la barra ahí) — la de arriba-derecha es una
-        // esquina normal convexa, como las de abajo.
+        // Arriba-izquierda, pegado al borde inferior de la barra.
         startX: 0
-        startY: rt
+        startY: 0
 
-        // Filete cóncavo arriba-izquierda.
+        // Borde superior: toca la barra en todo el ancho total.
+        PathLine { x: outline.w; y: 0 }
+        // Filete cóncavo derecho: escurre hacia afuera y se mete al cuerpo.
         PathArc {
-          x: outline.rt
-          y: 0
+          x: outline.w - outline.rt
+          y: outline.rt
           radiusX: outline.rt
           radiusY: outline.rt
           direction: PathArc.Counterclockwise
         }
-        // Borde de arriba, recto.
-        PathLine { x: outline.w - outline.rb; y: 0 }
-        // Esquina arriba-derecha, convexa normal.
-        PathArc {
-          x: outline.w
-          y: outline.rb
-          radiusX: outline.rb
-          radiusY: outline.rb
-          direction: PathArc.Clockwise
-        }
-        // Borde derecho.
-        PathLine { x: outline.w; y: outline.h - outline.rb }
+        // Borde derecho del cuerpo.
+        PathLine { x: outline.w - outline.rt; y: outline.h - outline.rb }
         // Esquina abajo-derecha, convexa normal.
         PathArc {
-          x: outline.w - outline.rb
+          x: outline.w - outline.rt - outline.rb
           y: outline.h
           radiusX: outline.rb
           radiusY: outline.rb
           direction: PathArc.Clockwise
         }
         // Borde de abajo.
-        PathLine { x: outline.rb; y: outline.h }
+        PathLine { x: outline.rt + outline.rb; y: outline.h }
         // Esquina abajo-izquierda, convexa normal.
         PathArc {
-          x: 0
+          x: outline.rt
           y: outline.h - outline.rb
           radiusX: outline.rb
           radiusY: outline.rb
           direction: PathArc.Clockwise
+        }
+        // Borde izquierdo del cuerpo, subiendo.
+        PathLine { x: outline.rt; y: outline.rt }
+        // Filete cóncavo izquierdo: escurre hacia afuera y regresa al inicio.
+        PathArc {
+          x: 0
+          y: 0
+          radiusX: outline.rt
+          radiusY: outline.rt
+          direction: PathArc.Counterclockwise
         }
       }
     }
 
     Column {
       anchors.fill: parent
+      anchors.leftMargin: root.rTop
+      anchors.rightMargin: root.rTop
       anchors.topMargin: root.headerH - 30
       spacing: 0
 

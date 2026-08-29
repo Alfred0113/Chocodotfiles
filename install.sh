@@ -19,7 +19,6 @@ LINKED_DIRS=(
     "uwsm:uwsm"
     "alacritty:alacritty"
     "swayosd:swayosd"
-    "fastfetch:fastfetch"
     "theming:theming"
     "theming/engines/matugen:matugen"
     "theming/engines/wallust:wallust"
@@ -74,6 +73,25 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
     ln -s "$unit_src" "$unit_dest"
     echo "Enlazado: $unit_dest -> $unit_src"
 done
+
+# config.jsonc de fastfetch se genera dinámicamente (el logo lleva el color
+# de acento del tema) — se enlaza el archivo suelto a theming/current/, no
+# una carpeta ni el archivo fuente.
+FASTFETCH_DIR="$CONFIG_DIR/fastfetch"
+mkdir -p "$FASTFETCH_DIR"
+FASTFETCH_SRC="$REPO_DIR/theming/current/fastfetch-config.jsonc"
+FASTFETCH_DEST="$FASTFETCH_DIR/config.jsonc"
+if [ -L "$FASTFETCH_DEST" ] && [ "$(readlink -f "$FASTFETCH_DEST")" = "$(readlink -f "$FASTFETCH_SRC")" ]; then
+    echo "OK: $FASTFETCH_DEST ya apunta a $FASTFETCH_SRC"
+else
+    if [ -e "$FASTFETCH_DEST" ] || [ -L "$FASTFETCH_DEST" ]; then
+        backup="${FASTFETCH_DEST}.pre-dotfiles-bak"
+        echo "Respaldando $FASTFETCH_DEST -> $backup"
+        mv "$FASTFETCH_DEST" "$backup"
+    fi
+    ln -s "$FASTFETCH_SRC" "$FASTFETCH_DEST"
+    echo "Enlazado: $FASTFETCH_DEST -> $FASTFETCH_SRC"
+fi
 
 echo "Listo. Revisa que tus paquetes estén instalados:"
 echo "  hyprland waybar mako walker aether awww alacritty swayosd-server openrgb chafa tte imagemagick quickshell socat fastfetch"
