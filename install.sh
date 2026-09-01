@@ -6,8 +6,10 @@
 #
 # Orden recomendado en una máquina nueva:
 #   1. Instala los paquetes (este script los lista al final y marca los que faltan).
-#   2. Copia tus wallpapers a ~/Imágenes/Wallpapers/ (no viajan en el repo).
-#   3. Corre este script DENTRO de la sesión de Hyprland ya iniciada.
+#   2. Corre este script DENTRO de la sesión de Hyprland ya iniciada.
+#      Si ~/Imágenes/Wallpapers/ está vacía, copia ahí unos wallpapers de
+#      arranque (los pocos de theming/themes/aether/backgrounds/); tus 163
+#      no viajan en el repo, agrégalas después.
 # Es idempotente: correrlo de nuevo solo reporta "ya apunta a".
 
 set -euo pipefail
@@ -76,6 +78,18 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
     [ -f "$unit_src" ] || continue
     link_path "$unit_src" "$CONFIG_DIR/systemd/user/$(basename "$unit_src")" || true
 done
+
+# --- Semilla de wallpapers -------------------------------------------------
+# theming/themes/aether/backgrounds/ trae unos wallpapers de arranque. Si
+# ~/Imágenes/Wallpapers/ no existe o está vacía, se copian ahí para que la
+# primera generación del tema (abajo) tenga con qué trabajar. Si ya tienes
+# tus propias imágenes no se toca nada.
+SEED_DIR="$REPO_DIR/theming/themes/aether/backgrounds"
+if [ -d "$SEED_DIR" ] && [ -z "$(find "$WALLPAPER_DIR" -maxdepth 1 -type f 2>/dev/null)" ]; then
+    mkdir -p "$WALLPAPER_DIR"
+    cp -n "$SEED_DIR"/* "$WALLPAPER_DIR"/ 2>/dev/null || true
+    echo "Wallpapers de arranque copiados a $WALLPAPER_DIR (theming/themes/aether/backgrounds/)."
+fi
 
 # --- Primera generación del tema --------------------------------------------
 # theming/current/ NO se versiona (es estado generado por aether). Sin esto,

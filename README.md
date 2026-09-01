@@ -6,12 +6,12 @@ Configuración personal de escritorio: Hyprland + herramientas asociadas.
 
 ```
 git clone <este repo> ~/dotfiles
-mkdir -p ~/Imágenes/Wallpapers && cp /ruta/a/tus/wallpapers/* ~/Imágenes/Wallpapers/
 ~/dotfiles/install.sh          # correr DENTRO de la sesión de Hyprland
 ```
 
 `install.sh`:
 - crea symlinks desde `~/.config/*` (y un par en `$HOME`) hacia las carpetas de este repo, respaldando lo que hubiera antes con sufijo `.pre-dotfiles-bak`;
+- si `~/Imágenes/Wallpapers/` está vacía, copia ahí los wallpapers de arranque de `theming/themes/aether/backgrounds/`;
 - corre la **primera generación del tema** (`chocomazapan-wallpaper-set random`) si `theming/current/` aún no existe y hay wallpaper + `aether`;
 - ofrece (opcional, pide sudo) instalar el hook de pacman y preparar los dirs de políticas de navegador;
 - lista los paquetes y marca los que faltan.
@@ -19,7 +19,7 @@ mkdir -p ~/Imágenes/Wallpapers && cp /ruta/a/tus/wallpapers/* ~/Imágenes/Wallp
 Es idempotente: correrlo de nuevo solo reporta "ya apunta a".
 
 **No incluido en el repo** (se copia / configura aparte):
-- Wallpapers → `~/Imágenes/Wallpapers/` (imágenes, no viven en git).
+- Wallpapers propios → `~/Imágenes/Wallpapers/`. El repo solo trae unos pocos de arranque (`theming/themes/aether/backgrounds/`); agrega los tuyos ahí después.
 - `~/.config/fish/` — funciones propias sin versionar (`waybarestart.fish` usa `chocomazapan-restart-waybar`).
 - `~/.config/tmux/tmux.conf` — lo lee `chocomazapan-menu-tmux-keybindings`.
 - `~/.config/aether/` — se recrea con los defaults de aether; el pipeline dinámico usa `--extract-mode`, no blueprints.
@@ -36,7 +36,7 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a".
   - `engines/{matugen,wallust}/` → `~/.config/{matugen,wallust}` — configs de los motores de extracción usados hasta antes de adoptar `aether`; ya no están wireados a nada, quedan como referencia
   - `templates/` → plantillas propias (waybar.css, mako, walker.css, vencord-quickcss.css, quickshell-colors.json, hyprland-colors.lua) que leen `current/colors.toml`
   - `current/` → estado generado (no versionado): paleta activa + assets derivados
-  - `themes/aether/` → paleta estática vendorizada de referencia, ya no es el mecanismo activo
+  - `themes/aether/` → paleta estática vendorizada de referencia (ya no es el mecanismo activo); `themes/aether/backgrounds/` son los wallpapers de arranque que `install.sh` copia si no tienes ninguno
 - `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
