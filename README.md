@@ -5,18 +5,20 @@ Configuración personal de escritorio: Hyprland + herramientas asociadas.
 ## Uso
 
 ```
+# antes: ten paru o yay instalado (helper de AUR)
 git clone <este repo> ~/dotfiles
 ~/dotfiles/install.sh          # correr DENTRO de la sesión de Hyprland
 ```
 
 `install.sh`:
+- **instala los paquetes que falten** (pregunta antes): `sudo pacman -S` para los de repos, `paru`/`yay` para los de AUR (`aether`, `elephant*`, `python-terminaltexteffects`, `vencord-installer-git`);
 - crea symlinks desde `~/.config/*` (y un par en `$HOME`) hacia las carpetas de este repo, respaldando lo que hubiera antes con sufijo `.pre-dotfiles-bak`;
 - si `~/Imágenes/Wallpapers/` está vacía, copia ahí los wallpapers de arranque de `theming/themes/aether/backgrounds/`;
-- corre la **primera generación del tema** (`chocomazapan-wallpaper-set random`) si `theming/current/` aún no existe y hay wallpaper + `aether`;
-- ofrece (opcional, pide sudo) instalar el hook de pacman y preparar los dirs de políticas de navegador;
-- lista los paquetes y marca los que faltan.
+- corre la **primera generación del tema** (`chocomazapan-wallpaper-set random`);
+- activa `chocomazapan-battery-monitor.timer`;
+- ofrece (opcional, pide sudo) instalar el hook de pacman y preparar los dirs de políticas de navegador.
 
-Es idempotente: correrlo de nuevo solo reporta "ya apunta a".
+Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 
 **No incluido en el repo** (se copia / configura aparte):
 - Wallpapers propios → `~/Imágenes/Wallpapers/`. El repo solo trae unos pocos de arranque (`theming/themes/aether/backgrounds/`); agrega los tuyos ahí después.

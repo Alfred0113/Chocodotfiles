@@ -4,13 +4,14 @@
 # es un symlink hacia este repo, lo respalda con sufijo .pre-dotfiles-bak
 # en vez de sobrescribirlo.
 #
-# Orden recomendado en una máquina nueva:
-#   1. Instala los paquetes (este script los lista al final y marca los que faltan).
-#   2. Corre este script DENTRO de la sesión de Hyprland ya iniciada.
-#      Si ~/Imágenes/Wallpapers/ está vacía, copia ahí unos wallpapers de
-#      arranque (los pocos de theming/themes/aether/backgrounds/); tus 163
-#      no viajan en el repo, agrégalas después.
-# Es idempotente: correrlo de nuevo solo reporta "ya apunta a".
+# En una máquina nueva:
+#   1. Ten instalado un helper de AUR (paru o yay) — hace falta para aether,
+#      elephant y un par más.
+#   2. Corre este script DENTRO de la sesión de Hyprland ya iniciada. Instala
+#      los paquetes que falten (pregunta antes), enlaza todo, siembra unos
+#      wallpapers de arranque si ~/Imágenes/Wallpapers/ está vacía, y genera
+#      el tema inicial.
+# Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 
 set -euo pipefail
 
@@ -78,6 +79,57 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
     [ -f "$unit_src" ] || continue
     link_path "$unit_src" "$CONFIG_DIR/systemd/user/$(basename "$unit_src")" || true
 done
+
+# --- Paquetes -------------------------------------------------------------
+# PKGS_REPO viven en repos de pacman (extra / cachyos — 'walker' solo está
+# en el repo cachyos). PKGS_AUR necesitan un helper (paru/yay). Los
+# opcionales no se instalan solos. Se corre antes de generar el tema
+# porque esa parte necesita 'aether'.
+PKGS_REPO="hyprland waybar mako walker quickshell awww alacritty swayosd openrgb chafa imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd btop hunspell"
+PKGS_AUR="aether python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
+PKGS_OPT="kitty foot ghostty mise"
+
+if command -v pacman >/dev/null 2>&1; then
+    miss_repo=""; for p in $PKGS_REPO; do pacman -Q "$p" &>/dev/null || miss_repo="$miss_repo $p"; done
+    miss_aur="";  for p in $PKGS_AUR;  do pacman -Q "$p" &>/dev/null || miss_aur="$miss_aur $p"; done
+
+    if [ -n "$miss_repo$miss_aur" ]; then
+        echo "Paquetes que faltan:"
+        [ -n "$miss_repo" ] && echo "  repos:$miss_repo"
+        [ -n "$miss_aur" ]  && echo "  AUR:$miss_aur"
+
+        aur_helper=""
+        for h in paru yay; do command -v "$h" >/dev/null 2>&1 && { aur_helper="$h"; break; }; done
+
+        pkg_ans="n"
+        if [ -t 0 ]; then
+            read -rp "¿Instalarlos ahora? [Y/n] " pkg_r || pkg_r=""
+            case "${pkg_r:-Y}" in [nN]*) pkg_ans="n" ;; *) pkg_ans="y" ;; esac
+        fi
+
+        if [ "$pkg_ans" = "y" ]; then
+            [ -n "$miss_repo" ] && sudo pacman -S --needed $miss_repo
+            if [ -n "$miss_aur" ]; then
+                if [ -n "$aur_helper" ]; then
+                    "$aur_helper" -S --needed $miss_aur \
+                        || echo "Aviso: algún paquete de AUR falló, revísalo a mano." >&2
+                else
+                    echo "Sin paru/yay: instala un helper de AUR y luego:" >&2
+                    echo "  paru -S --needed$miss_aur" >&2
+                fi
+            fi
+        else
+            echo "Para instalarlos luego:"
+            [ -n "$miss_repo" ] && echo "  sudo pacman -S --needed$miss_repo"
+            [ -n "$miss_aur" ]  && echo "  paru -S --needed$miss_aur   # o yay"
+        fi
+    else
+        echo "Paquetes necesarios: todo instalado."
+    fi
+
+    optmiss=""; for p in $PKGS_OPT; do pacman -Q "$p" &>/dev/null || optmiss="$optmiss $p"; done
+    [ -n "$optmiss" ] && echo "Opcionales sin instalar (no se instalan solos):$optmiss"
+fi
 
 # --- Semilla de wallpapers -------------------------------------------------
 # theming/themes/aether/backgrounds/ trae unos wallpapers de arranque. Si
@@ -198,29 +250,17 @@ HOOK
         ;;
 esac
 
-# --- Chequeo de paquetes -------------------------------------------------
-echo
-echo "Revisando paquetes..."
-PKGS_CORE="hyprland waybar mako walker elephant quickshell aether awww alacritty swayosd openrgb chafa python-terminaltexteffects imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd"
-PKGS_OPT="kitty foot ghostty btop hunspell mise"
-if command -v pacman >/dev/null 2>&1; then
-    miss=""
-    for p in $PKGS_CORE; do pacman -Q "$p" >/dev/null 2>&1 || miss="$miss $p"; done
-    [ -n "$miss" ] && echo "  FALTAN (necesarios):$miss" || echo "  necesarios: todo instalado"
-    optmiss=""
-    for p in $PKGS_OPT; do pacman -Q "$p" >/dev/null 2>&1 || optmiss="$optmiss $p"; done
-    [ -n "$optmiss" ] && echo "  opcionales sin instalar:$optmiss"
-    echo "  Walker usa proveedores 'elephant-*' aparte (bluetooth calc clipboard"
-    echo "  desktopapplications files menus providerlist runner symbols todo unicode websearch)."
-else
-    echo "  (sin pacman: instala manualmente) $PKGS_CORE"
+# --- Servicios systemd --user ------------------------------------------
+systemctl --user daemon-reload 2>/dev/null || true
+if [ -f "$REPO_DIR/systemd/user/chocomazapan-battery-monitor.timer" ]; then
+    systemctl --user enable --now chocomazapan-battery-monitor.timer 2>/dev/null \
+        && echo "Activado: chocomazapan-battery-monitor.timer" \
+        || echo "Aviso: no se pudo activar chocomazapan-battery-monitor.timer (¿sin sesión systemd --user?)." >&2
 fi
 
 # --- Pasos manuales restantes ------------------------------------------
 echo
 echo "Listo. Pasos manuales que quedan:"
-[ -d "$WALLPAPER_DIR" ] || echo "  - Crea $WALLPAPER_DIR y copia tus wallpapers (no viajan en el repo)."
-echo "  - systemctl --user daemon-reload && systemctl --user enable --now chocomazapan-battery-monitor.timer"
-echo "  - Vencord: instala 'vencord-installer-git' (AUR) y corre 'vencordinstallercli -install -branch stable' antes de abrir Discord."
+echo "  - Vencord: corre 'vencordinstallercli -install -branch stable' antes de abrir Discord (el paquete ya se instaló)."
 echo "  - Obsidian: si tu vault vive en otra ruta, edita VAULT_DIR en bin/chocomazapan-obsidian-sync."
 echo "  - Windows VM (opcional): 'chocomazapan-windows-vm install' — el docker-compose.yml y los discos no viajan en el repo."
