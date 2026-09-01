@@ -49,9 +49,25 @@ sync_desktop() {
     pgrep -x awww-daemon >/dev/null || {
         setsid uwsm-app -- awww-daemon >/dev/null 2>&1 &
         disown
-        sleep 0.3
     }
-    awww img "$image" --resize crop >/dev/null 2>&1
+
+    # Espera a que el daemon esté realmente listo (socket abierto y outputs
+    # ya registrados) antes de mandarle la imagen. En el arranque de sesión
+    # el compositor todavía está levantando los monitores y arrancando el
+    # resto del autostart, así que el "sleep 0.3" fijo de antes casi nunca
+    # alcanzaba: `awww img` fallaba en silencio (2>&1 >/dev/null) y el
+    # wallpaper se quedaba igual aunque los colores del tema sí se aplicaran.
+    for _ in $(seq 1 100); do
+        awww query >/dev/null 2>&1 && break
+        sleep 0.1
+    done
+
+    # Reintenta el img por si el primer intento cae justo en la ventana en
+    # la que el daemon responde query pero todavía no pinta.
+    for _ in 1 2 3 4 5; do
+        awww img "$image" --resize crop >/dev/null 2>&1 && break
+        sleep 0.3
+    done
 
     ln -sfn "$image" "$CURRENT_DIR/wallpaper"
     echo "$mode" >"$MODE_STATE_FILE"
