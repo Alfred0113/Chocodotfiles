@@ -18,6 +18,10 @@ LINKED_DIRS=(
     "walker:walker"
     "uwsm:uwsm"
     "alacritty:alacritty"
+    "kitty:kitty"
+    "foot:foot"
+    "ghostty:ghostty"
+    "btop:btop"
     "swayosd:swayosd"
     "theming:theming"
     "theming/engines/matugen:matugen"
@@ -91,6 +95,52 @@ else
     fi
     ln -s "$FASTFETCH_SRC" "$FASTFETCH_DEST"
     echo "Enlazado: $FASTFETCH_DEST -> $FASTFETCH_SRC"
+fi
+
+# Dotfiles sueltos de $HOME (no viven bajo ~/.config). Se enlazan archivo por
+# archivo desde home/ del repo. .XCompose necesita el include "%L" para que las
+# teclas muertas (´ + a = á) funcionen en apps Qt/Wayland.
+for home_src in "$REPO_DIR"/home/.*; do
+    base="$(basename "$home_src")"
+    case "$base" in .|..) continue ;; esac
+    [ -f "$home_src" ] || continue
+    home_dest="$HOME/$base"
+
+    if [ -L "$home_dest" ] && [ "$(readlink -f "$home_dest")" = "$(readlink -f "$home_src")" ]; then
+        echo "OK: $home_dest ya apunta a $home_src"
+        continue
+    fi
+
+    if [ -e "$home_dest" ] || [ -L "$home_dest" ]; then
+        backup="${home_dest}.pre-dotfiles-bak"
+        echo "Respaldando $home_dest -> $backup"
+        mv "$home_dest" "$backup"
+    fi
+
+    ln -s "$home_src" "$home_dest"
+    echo "Enlazado: $home_dest -> $home_src"
+done
+
+# Tema de VS Code: aether ya regenera theming/current/vscode-extension/ en
+# cada cambio de wallpaper (parte de su --output normal) — solo falta que la
+# extensión instalada apunte ahí en vez de a una copia estática.
+VSCODE_EXT_DIR="$HOME/.vscode/extensions"
+VSCODE_SRC="$REPO_DIR/theming/current/vscode-extension"
+VSCODE_DEST="$VSCODE_EXT_DIR/local.theme-aether-1.0.0"
+if [ -d "$VSCODE_EXT_DIR" ]; then
+    if [ -L "$VSCODE_DEST" ] && [ "$(readlink -f "$VSCODE_DEST")" = "$(readlink -f "$VSCODE_SRC")" ]; then
+        echo "OK: $VSCODE_DEST ya apunta a $VSCODE_SRC"
+    else
+        if [ -e "$VSCODE_DEST" ] || [ -L "$VSCODE_DEST" ]; then
+            backup="${VSCODE_DEST}.pre-dotfiles-bak"
+            echo "Respaldando $VSCODE_DEST -> $backup"
+            mv "$VSCODE_DEST" "$backup"
+        fi
+        ln -s "$VSCODE_SRC" "$VSCODE_DEST"
+        echo "Enlazado: $VSCODE_DEST -> $VSCODE_SRC"
+    fi
+else
+    echo "Aviso: $VSCODE_EXT_DIR no existe (¿VS Code no instalado?), se omite el tema." >&2
 fi
 
 echo "Listo. Revisa que tus paquetes estén instalados:"

@@ -1,7 +1,6 @@
 o.launch_on_start("hypridle")
 o.launch_on_start("mako")
 o.exec_on_start("! chocomazapan-toggle-enabled waybar-off && " .. o.launch("waybar"))
-o.launch_on_start("fcitx5 --disable notificationitem")
 -- Wallpaper is set by hypr/autostart.lua (chocomazapan-wallpaper-set random), not here.
 o.exec_on_start("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
 

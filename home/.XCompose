@@ -1,0 +1,6 @@
+# Hereda todas las secuencias estándar del locale (teclas muertas: ´ + a = á, etc.)
+include "%L"
+
+# Atajos propios con Multi_key (tecla Componer)
+<Multi_key> <space> <n> : "Alfred0113"
+<Multi_key> <space> <e> : "Alfred0113"
