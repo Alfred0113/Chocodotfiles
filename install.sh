@@ -115,10 +115,12 @@ fi
 # .XCompose necesita el include "%L" para que las teclas muertas (´ + a = á)
 # funcionen en apps Qt/Wayland.
 for home_src in "$REPO_DIR"/home/.*; do
-    case "$(basename "$home_src")" in .|..) continue ;; esac
+    case "$(basename "$home_src")" in .|..|.XCompose.local) continue ;; esac
     [ -f "$home_src" ] || continue
     link_path "$home_src" "$HOME/$(basename "$home_src")" || true
 done
+# .XCompose incluye ~/.XCompose.local (atajos personales, no versionado).
+[ -f "$HOME/.XCompose.local" ] || { touch "$HOME/.XCompose.local"; echo "Creado: $HOME/.XCompose.local (vacío — agrega tus atajos <Multi_key>)"; }
 
 # --- Tema de VS Code -------------------------------------------------------
 # aether regenera theming/current/vscode-extension/ en cada cambio de wallpaper;

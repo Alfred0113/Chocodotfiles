@@ -88,6 +88,8 @@ La distro de dotfiles usada como referencia ya no está instalada en esta máqui
 
 No se tocaron: drivers NVIDIA (`chwd`), fish shell, ni el paquete `hyprland` — son independientes de la distro de referencia aunque vinieran del mismo instalador de terceros.
 
-## Crédito
+## Crédito y licencia
 
-La estructura de esta configuración se inspiró en Omarchy (https://omarchy.org), usado como referencia durante el desarrollo.
+Este repo empezó como una migración fuera de [Omarchy](https://omarchy.org) (Copyright 37signals LLC, MIT): varios scripts y archivos de tema se copiaron desde Omarchy y se adaptaron/renombraron (ver el historial de commits y la sección "Corte final"). Las plantillas de tema por app las genera [aether](https://github.com/bjarneo/aether) (Copyright bjarneo, MIT).
+
+Licencia: **MIT** (ver [`LICENSE`](LICENSE)) — compatible con las partes heredadas, que conservan su aviso de copyright original.
