@@ -8,3 +8,6 @@ home/.XCompose.local
 # Estado generado en cada sesión/selección de wallpaper (colors.toml, symlink
 # de wallpaper activo, motor usado) — se regenera, no se versiona.
 theming/current/
+
+# Flag de runtime del toggle de formato del reloj de waybar.
+waybar/.clock-alt
