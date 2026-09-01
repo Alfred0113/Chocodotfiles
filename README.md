@@ -6,13 +6,25 @@ Configuración personal de escritorio: Hyprland + herramientas asociadas.
 
 ```
 git clone <este repo> ~/dotfiles
-~/dotfiles/install.sh
+mkdir -p ~/Imágenes/Wallpapers && cp /ruta/a/tus/wallpapers/* ~/Imágenes/Wallpapers/
+~/dotfiles/install.sh          # correr DENTRO de la sesión de Hyprland
 ```
 
-`install.sh` crea symlinks desde `~/.config/*` hacia las carpetas de este repo.
+`install.sh`:
+- crea symlinks desde `~/.config/*` (y un par en `$HOME`) hacia las carpetas de este repo, respaldando lo que hubiera antes con sufijo `.pre-dotfiles-bak`;
+- corre la **primera generación del tema** (`chocomazapan-wallpaper-set random`) si `theming/current/` aún no existe y hay wallpaper + `aether`;
+- ofrece (opcional, pide sudo) instalar el hook de pacman y preparar los dirs de políticas de navegador;
+- lista los paquetes y marca los que faltan.
 
-**No incluido en el repo** (copiar aparte a la carpeta indicada):
-- Wallpapers → `~/Imágenes/Wallpapers/` (imágenes, no viven en git)
+Es idempotente: correrlo de nuevo solo reporta "ya apunta a".
+
+**No incluido en el repo** (se copia / configura aparte):
+- Wallpapers → `~/Imágenes/Wallpapers/` (imágenes, no viven en git).
+- `~/.config/fish/` — funciones propias sin versionar (`waybarestart.fish` usa `chocomazapan-restart-waybar`).
+- `~/.config/tmux/tmux.conf` — lo lee `chocomazapan-menu-tmux-keybindings`.
+- `~/.config/aether/` — se recrea con los defaults de aether; el pipeline dinámico usa `--extract-mode`, no blueprints.
+- `~/.config/environment.d/firefox-wayland.conf` (`MOZ_ENABLE_WAYLAND=1`) — opcional, Firefox reciente ya autodetecta Wayland.
+- Dirs `/etc/<navegador>/policies/managed` — los prepara el paso de sudo de `install.sh`; sin ellos el color de ventana del navegador no se aplica.
 
 ## Estructura
 
@@ -29,8 +41,12 @@ git clone <este repo> ~/dotfiles
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
+- `kitty/`, `foot/`, `ghostty/` → `~/.config/{kitty,foot,ghostty}` — cada config hace `include` del tema en `theming/current/<app>` (generado por aether). Terminales opcionales; la que se usa aquí es Alacritty.
+- `btop/` → `~/.config/btop` — `btop.conf` + `themes/current.theme` (symlink relativo a `theming/current/btop.theme`)
 - `swayosd/` → `~/.config/swayosd`
-- `fastfetch/` → `~/.config/fastfetch` — logo propio (`bin/assets/logo.txt`), OS/wallpaper-activo/actualizaciones-pendientes reales (ver "Corte final" — antes usaba comandos de versión de Omarchy)
+- `home/` → archivos sueltos de `$HOME`: `.bashrc` (sin el rc de Omarchy) y `.XCompose` (con `include "%L"`, si no las teclas muertas no componen en apps Qt/Wayland)
+- `theming/current/fastfetch-config.jsonc` → `~/.config/fastfetch/config.jsonc` (archivo suelto, no carpeta) — logo propio (`bin/assets/logo.txt`), OS/wallpaper-activo/actualizaciones-pendientes reales
+- `theming/current/quickshell-colors.json` → `~/.config/chocomazapan/quickshell-colors.json` — colores del selector visual cuando se le llama sin `--colors-file`
 - `quickshell/select-by-image.qml` — el selector visual de wallpaper (carrusel de tarjetas, ver abajo). No se symlinkea a ningún `~/.config`; `chocomazapan-menu-images` lo referencia directo por su ruta dentro del repo.
 
 ## Theming dinámico
