@@ -44,13 +44,42 @@ ShellRoot {
     root.modeIndex = idx >= 0 ? idx : 0
   }
 
+  property int paletteSerial: 0
+
+  // Debounce: al abrir el selector, refreshPreviewPalette se dispara dos
+  // veces casi juntas (una por onSelectedIndexChanged desde loadRows, otra
+  // por el Qt.callLater del mismo loadRows). Sin debounce eso lanzaba dos
+  // `aether` en paralelo cuyas salidas se concatenaban en paletteProc.output
+  // ({...}{...}), y el segundo onExited fallaba al parsear y vaciaba la
+  // paleta: los puntos aparecían y desaparecían al instante. El Timer colapsa
+  // los disparos seguidos en una sola corrida (y de paso no spamea aether al
+  // navegar rápido con las flechas).
+  Timer {
+    id: paletteDebounce
+    interval: 90
+    repeat: false
+    onTriggered: root.runPreviewPalette()
+  }
+
   function refreshPreviewPalette() {
+    if (!root.currentPath()) {
+      paletteDebounce.stop()
+      root.previewPalette = []
+      return
+    }
+    paletteDebounce.restart()
+  }
+
+  function runPreviewPalette() {
     var path = root.currentPath()
     if (!path) {
       root.previewPalette = []
       return
     }
 
+    root.paletteSerial += 1
+    paletteProc.serial = root.paletteSerial
+    paletteProc.running = false
     paletteProc.output = ""
     paletteProc.command = ["bash", "-lc", "aether --extract-palette " + shellQuote(path) + " --extract-mode " + shellQuote(root.extractModes[root.modeIndex]) + " --json 2>/dev/null"]
     paletteProc.running = true
@@ -62,17 +91,23 @@ ShellRoot {
   Process {
     id: paletteProc
     property string output: ""
+    property int serial: 0
     stdout: SplitParser {
       onRead: function(data) {
         paletteProc.output += data
       }
     }
     onExited: {
+      // Ignora la salida de una corrida ya reemplazada por otra más nueva
+      // (evita que un proceso viejo pise la paleta buena).
+      if (paletteProc.serial !== root.paletteSerial)
+        return
+
       try {
         var parsed = JSON.parse(paletteProc.output)
         root.previewPalette = parsed.colors || []
       } catch (e) {
-        root.previewPalette = []
+        // Conserva la última paleta válida en vez de vaciarla.
       }
     }
   }
