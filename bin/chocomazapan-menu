@@ -53,10 +53,14 @@ show_screenrecord_menu() {
 
 # Quick on/off switches: idle-lock, notification do-not-disturb, and RGB sync.
 show_toggle_menu() {
-  case $(menu "Toggle" "󱫖  Idle Lock\n󰂛  Notifications\n󰐊  RGB Sync") in
+  case $(menu "Toggle" "󱫖  Idle Lock\n󰂛  Notifications\n󰖔  Nightlight\n󰐊  RGB Sync\n󰍜  Top bar\n󰘖  Window gaps\n󰨤  Square aspect") in
   *Idle*) chocomazapan-toggle-idle ;;
   *Notifications*) chocomazapan-toggle-notification-silencing ;;
+  *Nightlight*) chocomazapan-toggle-nightlight ;;
   *RGB*) chocomazapan-toggle-rgb-sync ;;
+  *"Top bar"*) chocomazapan-toggle-waybar ;;
+  *"Window gaps"*) chocomazapan-hyprland-window-gaps-toggle ;;
+  *"Square aspect"*) chocomazapan-hyprland-window-single-square-aspect-toggle ;;
   *) back_to show_main_menu ;;
   esac
 }
