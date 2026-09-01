@@ -261,6 +261,17 @@ fi
 # --- Pasos manuales restantes ------------------------------------------
 echo
 echo "Listo. Pasos manuales que quedan:"
-echo "  - Vencord: corre 'vencordinstallercli -install -branch stable' antes de abrir Discord (el paquete ya se instaló)."
-echo "  - Obsidian: si tu vault vive en otra ruta, edita VAULT_DIR en bin/chocomazapan-obsidian-sync."
-echo "  - Windows VM (opcional): 'chocomazapan-windows-vm install' — el docker-compose.yml y los discos no viajan en el repo."
+echo
+echo "  Vencord (si usas Discord):"
+echo "    vencordinstallercli -install -branch stable   # el paquete ya se instaló"
+echo
+echo "  Obsidian:"
+echo "    si tu vault no está en la ruta por defecto, edita VAULT_DIR en bin/chocomazapan-obsidian-sync"
+echo
+echo "  Windows VM (opcional — el docker-compose.yml y los discos no viajan en el repo):"
+echo "    sudo pacman -S --needed docker docker-compose"
+echo "    sudo systemctl enable --now docker"
+echo "    sudo usermod -aG docker \"\$USER\"      # y reinicia sesión para que aplique"
+echo "    # habilita la virtualización en el BIOS si 'ls /dev/kvm' falla"
+echo "    chocomazapan-windows-vm install         # menús para RAM/CPU/disco/usuario, descarga Win11"
+echo "    #   luego: chocomazapan-windows-vm launch | stop | status | remove"

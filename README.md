@@ -76,7 +76,19 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 
 ## Windows VM
 
-`chocomazapan-windows-vm` (install/remove/launch/stop/status) administra una VM de Windows vía Docker + RDP, lanzada desde el `.desktop` "Windows". El nombre del contenedor Docker (`omarchy-windows` en `docker-compose.yml`) y sus datos (`~/.windows`, `~/Windows`) se dejaron intactos tal como ya estaban provisionados en esta máquina — renombrarlos implicaría recrear el contenedor.
+`chocomazapan-windows-vm` (install/remove/launch/stop/status) es un wrapper de [dockurr/windows](https://github.com/dockur/windows) (Windows en un contenedor Docker con KVM/QEMU, viewer web + RDP), lanzado desde el `.desktop` "Windows". El nombre del contenedor (`omarchy-windows` en `docker-compose.yml`) y sus datos (`~/.windows`, `~/Windows`) se dejaron como estaban — renombrarlos implicaría recrear el contenedor.
+
+El `docker-compose.yml` y los discos **no viajan en el repo** (son de cada máquina). En una instalación nueva:
+
+```
+sudo pacman -S --needed docker docker-compose
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"      # reinicia sesión para que aplique
+# habilita la virtualización en el BIOS si 'ls /dev/kvm' falla
+chocomazapan-windows-vm install      # pregunta RAM/CPU/disco/usuario/contraseña, descarga Win11 (~10-15 min)
+```
+
+Luego: `chocomazapan-windows-vm launch` (arranca + conecta por RDP; auto-apaga al cerrar), `launch -k` (deja corriendo), `stop`, `status`, `remove`. `install` también instala `freerdp openbsd-netcat gum` y crea el `.desktop` "Windows" (Súper+Space).
 
 ## Riesgo Hyprland Lua resuelto (ver historial de commits para el detalle)
 
