@@ -1,7 +1,6 @@
--- Pantalla de login: sin display manager, Hyprland arranca bloqueado y la
--- contrasena se escribe en hyprlock (ver fish/conf.d/chocomazapan-login.fish).
-o.exec_on_start("hyprlock")
-
+-- La pantalla de login del arranque es SDDM (tema chocomazapan, imita a
+-- hyprlock). Hyprland NO arranca bloqueado; hyprlock queda para bloqueo manual
+-- (chocomazapan-system-lock) e inactividad (hypridle.conf).
 o.launch_on_start("hypridle")
 o.launch_on_start("mako")
 o.exec_on_start("! chocomazapan-toggle-enabled waybar-off && " .. o.launch("waybar"))

@@ -42,7 +42,8 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 - `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
-- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `greetd/config.toml` (login sin display manager pesado), `plymouth-quit.service.d/override.conf` (`--retain-splash`) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
+- `sddm/` → `themes/chocomazapan/` (tema QML del login, imita hyprlock) y `conf.d/chocomazapan.conf`; `install.sh` (paso root) los copia a `/usr/share/sddm/themes/` y `/etc/sddm.conf.d/`
+- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `chocomazapan-sddm-bg.service` (fondo aleatorio del login), `plymouth-quit.service.d/override.conf` (`--retain-splash`) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
 - `nautilus/` → extensiones de `nautilus-python` enlazadas en `~/.local/share/nautilus-python/extensions/`. Por ahora `transcode.py` (menú contextual "Transcode" → `chocomazapan-transcode`)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
@@ -140,18 +141,16 @@ No se tocaron: drivers NVIDIA (`chwd`), fish shell, ni el paquete `hyprland` —
 
 ## Arranque y login
 
-Sin SDDM. El camino es:
-
-1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs; el hook `plymouth` ya está en `/etc/mkinitcpio.conf`). `plymouth-quit.service` lleva un override para salir con `--retain-splash` (deja el logo congelado en el framebuffer durante el handoff a Hyprland, sin negro).
+1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs). `plymouth-quit.service` lleva un override para salir con `--retain-splash` (deja el logo congelado durante el handoff a SDDM, sin negro).
 2. **Cmdline del kernel** — `install.sh` añade `loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0` a `/etc/default/limine` (+ `limine-update`): sin ruido de systemd/udev ni cursor parpadeante bajo el splash.
-3. **greetd** — `system/greetd/config.toml` → `/etc/greetd/config.toml`. Demonio de login mínimo (sin Qt/tema). Hace el login por PAM directo (sin getty, sin shell, sin MOTD) → **cero texto en consola**. `[terminal] switch = false` para que no repinte el vt1 y el splash retenido se mantenga hasta que Hyprland pinta.
-   - `[initial_session]` = autologin de `alfredo` al arrancar: lanza `uwsm start … Hyprland` sin pedir contraseña a nivel login.
-   - `[default_session]` = `agreety` (prompt `login:` de texto) como fallback: si el autologin falla o al cerrar sesión. **No hay crash-loop** — si Hyprland revienta, greetd vuelve aquí, no lo relanza en bucle.
-4. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
+3. **SDDM con tema `chocomazapan`** — `sddm/themes/chocomazapan/` (QML Qt6 puro), copiado a `/usr/share/sddm/themes/`. **Imita a hyprlock**: fondo aleatorio borroso, reloj `HH:MM`, fecha en es_MX, campo de contraseña tipo píldora con borde de acento — mismos colores catppuccin que `hyprlock.conf`. `sddm/conf.d/chocomazapan.conf` → `/etc/sddm.conf.d/` fija el tema; SDDM es un DM real que dibuja al instante (sin el hueco de `fbcon` que dejaba ver la consola con getty/greetd). **Sin autologin** — la contraseña se escribe aquí.
+   - **Fondo**: `bin/chocomazapan-sddm-bg` (corre como `alfredo` vía `chocomazapan-sddm-bg.service`, `Before=sddm.service`) elige un wallpaper al azar de `~/Imágenes/Wallpapers` (≥1920×1080, caché por firma como `pick-lock-background.sh`), lo recorta + desenfoca + oscurece con ImageMagick y lo deja en `backgrounds/current.jpg` (ese dir lo hace escribible `install.sh` con `chown`).
+   - Preview sin reiniciar: `sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/chocomazapan`.
+4. **hyprlock** ya **no** se lanza al arrancar (SDDM es la pantalla de login). Sigue igual para bloqueo manual (`chocomazapan-system-lock`, bind) e inactividad (`hypridle.conf`).
 
-⚠️ **No** enmascarar `plymouth-quit*` para tapar la consola — plymouthd se queda agarrando el GPU y Hyprland no arranca (`CBackend::create() failed!`), sistema en bucle de crash. Ya probado y revertido; por eso se usa greetd (que no tiene consola que tapar) + el override `--retain-splash`.
+⚠️ **No** enmascarar `plymouth-quit*` para tapar la consola — plymouthd se queda de DRM master y Hyprland no arranca (`CBackend::create() failed!`), sistema en bucle de crash. Ya probado y revertido. Con SDDM no hace falta: dibuja de inmediato, no hay consola visible.
 
-**SDDM** queda deshabilitado pero **instalado** como segunda red de seguridad. Si el arranque falla: menú de Limine → snapshot, o desde el prompt `login:` de greetd / un TTY: `sudo systemctl disable greetd && sudo systemctl enable sddm`.
+**Rescate si SDDM falla:** menú de Limine → snapshot, o `Ctrl+Alt+F2` → login → `sudo systemctl disable sddm`. El paquete `greetd` quedó instalado de un intento previo; se puede quitar (`sudo pacman -Rns greetd`), no se usa.
 
 ## Crédito y licencia
 

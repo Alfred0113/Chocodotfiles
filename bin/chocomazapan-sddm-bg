@@ -1,0 +1,58 @@
+#!/bin/bash
+# meta:summary=Pick a random wallpaper, blur+darken it, put it under the SDDM theme
+# meta:group=system
+#
+# Corre como el usuario 'alfredo' (via chocomazapan-sddm-bg.service, Before=sddm)
+# y deja el resultado en /usr/share/sddm/themes/chocomazapan/backgrounds/current.jpg
+# (ese dir lo hace escribible install.sh con chown). El tema QML solo muestra la
+# imagen -- el desenfoque/oscurecido ya viene horneado (equivale a los
+# blur_passes=2 / brightness=0.75 de hyprlock.conf).
+
+set -u
+
+BG_DIR="$HOME/Imágenes/Wallpapers"
+CACHE_FILE="$HOME/dotfiles/theming/current/sddm-bg-cache"
+OUT="/usr/share/sddm/themes/chocomazapan/backgrounds/current.jpg"
+MIN_W=1920
+MIN_H=1080
+
+mkdir -p "$(dirname "$CACHE_FILE")"
+
+find_imgs() {
+    find "$BG_DIR" -maxdepth 1 -type f \
+        \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) "$@"
+}
+dir_signature() { find_imgs -printf '%f %s\n' 2>/dev/null | sort | md5sum; }
+
+rebuild_cache() {
+    : > "$CACHE_FILE"
+    while IFS= read -r -d '' file; do
+        dims=$(magick identify -format '%w %h\n' "$file" 2>/dev/null | head -n1) || continue
+        w=${dims% *}; h=${dims#* }
+        [ "${w:-0}" -ge "$MIN_W" ] && [ "${h:-0}" -ge "$MIN_H" ] && printf '%s\n' "$file" >> "$CACHE_FILE"
+    done < <(find_imgs -print0 2>/dev/null)
+    dir_signature > "$CACHE_FILE.sig"
+}
+
+current_sig="$(dir_signature)"
+[ -f "$CACHE_FILE" ] && [ "$current_sig" = "$(cat "$CACHE_FILE.sig" 2>/dev/null)" ] || rebuild_cache
+
+if [ -s "$CACHE_FILE" ]; then
+    src="$(shuf -n1 "$CACHE_FILE")"
+else
+    src="$(find_imgs 2>/dev/null | head -n1)"
+fi
+[ -n "${src:-}" ] || { echo "chocomazapan-sddm-bg: no hay wallpapers en $BG_DIR" >&2; exit 0; }
+
+[ -w "$(dirname "$OUT")" ] || { echo "chocomazapan-sddm-bg: $(dirname "$OUT") no escribible (corre install.sh)" >&2; exit 0; }
+
+tmp="$(mktemp --suffix=.jpg)"
+if magick "$src" -auto-orient -resize 1920x1080^ -gravity center -extent 1920x1080 \
+       -blur 0x8 -modulate 72 -quality 88 "$tmp" 2>/dev/null; then
+    mv -f "$tmp" "$OUT"
+    chmod 644 "$OUT"
+else
+    rm -f "$tmp"
+    echo "chocomazapan-sddm-bg: magick fallo con $src" >&2
+    exit 1
+fi

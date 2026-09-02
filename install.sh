@@ -260,12 +260,11 @@ HOOK
         ;;
 esac
 
-# --- Arranque y login sin display manager pesado (opcional, root) ----------
-# Deja el arranque asi:  Plymouth (tema propio) -> greetd autologin en vt1
-# -> uwsm lanza Hyprland -> Hyprland arranca con hyprlock, que es donde se
-# escribe la contrasena. Sin texto de consola. SDDM se deshabilita pero NO se
-# desinstala (fallback: desde un TTY, `sudo systemctl disable greetd` +
-# `sudo systemctl enable sddm`).
+# --- Arranque y login: Plymouth propio + SDDM con tema chocomazapan (root) --
+# Arranque:  Plymouth (tema propio) -> SDDM (tema chocomazapan, imita hyprlock:
+# fondo aleatorio borroso, reloj, fecha es_MX, campo pildora) -> se escribe la
+# contrasena -> Hyprland. hyprlock NO se lanza al arrancar (solo bloqueo manual /
+# inactividad). Sin autologin.
 BOOT_STEPS=$(cat <<STEPS
   # 1. Tema de Plymouth propio + no cortar el splash a negro
   sudo cp -rT "$REPO_DIR/plymouth/chocomazapan" /usr/share/plymouth/themes/chocomazapan
@@ -273,21 +272,23 @@ BOOT_STEPS=$(cat <<STEPS
   sudo rm -rf /usr/share/plymouth/themes/omarchy
   sudo install -Dm644 "$REPO_DIR/system/plymouth-quit.service.d/override.conf" \\
     /etc/systemd/system/plymouth-quit.service.d/override.conf
-  # 2. Cmdline del kernel mas silencioso (sin ruido de consola bajo el splash)
+  # 2. Cmdline del kernel mas silencioso
   grep -q vt.global_cursor_default /etc/default/limine || \\
     echo 'KERNEL_CMDLINE[default]+=" loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"' | sudo tee -a /etc/default/limine
   sudo limine-update
-  # 3. greetd como login (autologin -> Hyprland; agreety de fallback)
-  sudo pacman -S --needed greetd
-  getent passwd greeter >/dev/null || sudo useradd -r -M -G video -s /usr/bin/nologin greeter
-  sudo install -Dm644 "$REPO_DIR/system/greetd/config.toml" /etc/greetd/config.toml
-  sudo rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
-  sudo systemctl daemon-reload
-  sudo systemctl enable greetd.service
-  # 3. Fuera SDDM (queda instalado como fallback)
-  sudo systemctl disable sddm.service
-  sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
+  # 3. Tema SDDM chocomazapan + fondo aleatorio + quitar autologin
+  sudo cp -rT "$REPO_DIR/sddm/themes/chocomazapan" /usr/share/sddm/themes/chocomazapan
+  sudo mkdir -p /usr/share/sddm/themes/chocomazapan/backgrounds
+  sudo chown "\$USER" /usr/share/sddm/themes/chocomazapan/backgrounds
+  "$REPO_DIR/bin/chocomazapan-sddm-bg"
+  sudo install -Dm644 "$REPO_DIR/sddm/conf.d/chocomazapan.conf" /etc/sddm.conf.d/chocomazapan.conf
+  sudo rm -f /etc/sddm.conf.d/autologin.conf
+  sudo install -Dm644 "$REPO_DIR/system/chocomazapan-sddm-bg.service" /etc/systemd/system/chocomazapan-sddm-bg.service
   sudo rm -rf /usr/share/sddm/themes/omarchy
+  sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
+  sudo systemctl daemon-reload
+  sudo systemctl disable greetd.service 2>/dev/null || true
+  sudo systemctl enable sddm.service chocomazapan-sddm-bg.service
   # 4. Reglas sudoers propias (timedatectl) y baja de las de omarchy
   for f in "$REPO_DIR"/system/sudoers.d/*; do sudo install -Dm440 "\$f" "/etc/sudoers.d/\$(basename "\$f")"; done
   sudo rm -f /etc/sudoers.d/99-omarchy-installer-reboot /etc/sudoers.d/omarchy-tzupdate
@@ -295,7 +296,7 @@ STEPS
 )
 
 if [ -t 0 ] && command -v sudo >/dev/null 2>&1; then
-    read -rp "¿Configurar el arranque sin display manager (Plymouth propio + greetd autologin + hyprlock)? [y/N] " BOOT_ANS || BOOT_ANS="N"
+    read -rp "¿Configurar el arranque (Plymouth propio + SDDM con tema tipo hyprlock)? [y/N] " BOOT_ANS || BOOT_ANS="N"
 else
     BOOT_ANS="N"
 fi
@@ -333,29 +334,25 @@ case "${BOOT_ANS:-N}" in
             sudo limine-update && echo "cmdline: + loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"
         fi
 
-        # 3. greetd como login -------------------------------------------
-        sudo pacman -S --needed greetd
-        if ! getent passwd greeter >/dev/null; then
-            sudo useradd -r -M -G video -s /usr/bin/nologin greeter \
-                && echo "Creado el usuario de sistema 'greeter'."
-        fi
-        sudo install -Dm644 "$REPO_DIR/system/greetd/config.toml" /etc/greetd/config.toml \
-            && echo "Instalado: /etc/greetd/config.toml"
-        sudo rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
-        sudo systemctl daemon-reload
-        sudo systemctl enable greetd.service && echo "greetd habilitado (login en vt1)."
-
-        # 4. Deshabilitar SDDM (sin desinstalar) --------------------------
-        if [ "$(systemctl is-enabled sddm.service 2>/dev/null)" = "enabled" ]; then
-            sudo systemctl disable sddm.service && echo "SDDM deshabilitado (sigue instalado como fallback)."
-        else
-            echo "SDDM ya estaba deshabilitado."
-        fi
-        sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
+        # 3. Tema SDDM chocomazapan (imita hyprlock) --------------------
+        sudo cp -rT "$REPO_DIR/sddm/themes/chocomazapan" /usr/share/sddm/themes/chocomazapan \
+            && echo "Copiado: tema SDDM 'chocomazapan'."
+        sudo mkdir -p /usr/share/sddm/themes/chocomazapan/backgrounds
+        sudo chown "$USER" /usr/share/sddm/themes/chocomazapan/backgrounds
+        "$REPO_DIR/bin/chocomazapan-sddm-bg" && echo "Fondo inicial de SDDM generado."
+        sudo install -Dm644 "$REPO_DIR/sddm/conf.d/chocomazapan.conf" /etc/sddm.conf.d/chocomazapan.conf \
+            && echo "Instalado: /etc/sddm.conf.d/chocomazapan.conf"
+        sudo rm -f /etc/sddm.conf.d/autologin.conf && echo "Autologin de SDDM quitado."
+        sudo install -Dm644 "$REPO_DIR/system/chocomazapan-sddm-bg.service" \
+            /etc/systemd/system/chocomazapan-sddm-bg.service
         sudo rm -rf /usr/share/sddm/themes/omarchy
-        if [ -f /etc/sddm.conf.d/autologin.conf ]; then
-            sudo sed -i 's/^Session=omarchy$/Session=hyprland/' /etc/sddm.conf.d/autologin.conf
-        fi
+        sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
+
+        # 4. SDDM como login (y fuera greetd si estaba) -----------------
+        sudo systemctl daemon-reload
+        sudo systemctl disable greetd.service 2>/dev/null && echo "greetd deshabilitado." || true
+        sudo systemctl enable sddm.service chocomazapan-sddm-bg.service \
+            && echo "SDDM + servicio de fondo habilitados."
 
         # 5. Reglas sudoers propias (validadas con visudo antes de instalar) ---
         for sd_src in "$REPO_DIR"/system/sudoers.d/*; do
@@ -372,12 +369,13 @@ case "${BOOT_ANS:-N}" in
         sudo rm -f /etc/sudoers.d/99-omarchy-installer-reboot /etc/sudoers.d/omarchy-tzupdate
 
         echo
-        echo "Listo. Reinicia para probar: Plymouth -> hyprlock (contrasena) -> escritorio."
-        echo "Si el arranque falla: menu de Limine -> snapshot, o desde el prompt"
-        echo "'login:' de greetd / un TTY:  sudo systemctl disable greetd && sudo systemctl enable sddm"
+        echo "Listo. Reinicia: Plymouth -> SDDM (tema tipo hyprlock) -> contrasena -> Hyprland."
+        echo "Preview del tema sin reiniciar:"
+        echo "  sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/chocomazapan"
+        echo "Si SDDM falla: menu de Limine -> snapshot, o Ctrl+Alt+F2 -> 'sudo systemctl disable sddm'."
         ;;
     *)
-        echo "Saltado el arranque sin display manager. Para hacerlo luego:"
+        echo "Saltado el paso de arranque/login. Para hacerlo luego:"
         echo "$BOOT_STEPS"
         ;;
 esac

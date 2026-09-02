@@ -1,0 +1,15 @@
+[SddmGreeterTheme]
+Name=ChocoMazapan
+Description=Pantalla de login estilo hyprlock (reloj, fecha es_MX, campo pildora)
+Author=Alfred0113
+Copyright=(c) 2026
+License=MIT
+Type=sddm-theme
+Version=1.0
+Website=
+Screenshot=
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=
+Theme-Id=chocomazapan
+Theme-API=2.0

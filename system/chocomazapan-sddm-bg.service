@@ -1,0 +1,19 @@
+# Genera el fondo aleatorio del tema SDDM antes de que arranque el greeter.
+# install.sh lo copia a /etc/systemd/system/ y lo habilita.
+[Unit]
+Description=Fondo aleatorio para el tema SDDM chocomazapan
+Before=sddm.service
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=alfredo
+Group=alfredo
+Environment=HOME=/home/alfredo
+ExecStart=/home/alfredo/dotfiles/bin/chocomazapan-sddm-bg
+# No frenar el arranque si algo falla (queda el current.jpg anterior / fallbackColor)
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=sddm.service
