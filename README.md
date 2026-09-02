@@ -41,9 +41,8 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
   - `themes/aether/` → paleta estática vendorizada de referencia (ya no es el mecanismo activo); `themes/aether/backgrounds/` son los wallpapers de arranque que `install.sh` copia si no tienes ninguno
 - `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
-- `fish/conf.d/` → archivos sueltos enlazados dentro de `~/.config/fish/conf.d/` (no la carpeta ni `config.fish`, que son del usuario/CachyOS). Por ahora solo `chocomazapan-login.fish`, que arranca la sesión gráfica desde el login de tty1 (ver "Arranque y login")
 - `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
-- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `getty@tty1.service.d/autologin.conf` (autologin de consola) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
+- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `greetd/config.toml` (login sin display manager pesado), `plymouth-quit.service.d/override.conf` (`--retain-splash`) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
 - `nautilus/` → extensiones de `nautilus-python` enlazadas en `~/.local/share/nautilus-python/extensions/`. Por ahora `transcode.py` (menú contextual "Transcode" → `chocomazapan-transcode`)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
@@ -141,16 +140,17 @@ No se tocaron: drivers NVIDIA (`chwd`), fish shell, ni el paquete `hyprland` —
 
 ## Arranque y login
 
-Sin display manager. El camino es:
+Sin SDDM. El camino es:
 
-1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs; el hook `plymouth` ya está en `/etc/mkinitcpio.conf`).
-2. **Autologin de consola** — `system/getty@tty1.service.d/autologin.conf` (drop-in de `agetty --autologin alfredo`) → `/etc/systemd/system/getty@tty1.service.d/`.
-3. **Sesión gráfica** — `fish/conf.d/chocomazapan-login.fish`: en el login de tty1 hace `exec uwsm start -g -1 -e -D Hyprland hyprland.desktop` (protegido por `uwsm check may-start`, no-op en cualquier otro shell).
-4. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
+1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs; el hook `plymouth` ya está en `/etc/mkinitcpio.conf`). `plymouth-quit.service` lleva un override para salir con `--retain-splash` (deja el logo congelado en el handoff a Hyprland, sin negro).
+2. **greetd** — `system/greetd/config.toml` → `/etc/greetd/config.toml`. Demonio de login mínimo (sin Qt/tema). Hace el login por PAM directo (sin getty, sin shell, sin MOTD) → **cero texto en consola**.
+   - `[initial_session]` = autologin de `alfredo` al arrancar: lanza `uwsm start … Hyprland` sin pedir contraseña a nivel login.
+   - `[default_session]` = `agreety` (prompt `login:` de texto) como fallback: si el autologin falla o al cerrar sesión. **No hay crash-loop** — si Hyprland revienta, greetd vuelve aquí, no lo relanza en bucle.
+3. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
 
-Entre el splash y hyprlock hay ~1 s de texto de consola (agetty/login/fish). Se reduce con `home/.hushlogin` (sin MOTD/last-login), `fish_greeting` vacío y el `quiet` del kernel, pero no se elimina del todo: eso requeriría un handoff DRM dedicado (un binario de "seamless login" que reemplace a getty). **No** intentar enmascarar `plymouth-quit*` para tapar la consola — plymouthd se queda agarrando el GPU y Hyprland no arranca (`CBackend::create() failed!`), dejando el sistema en un bucle de crash. Ya probado y revertido.
+⚠️ **No** enmascarar `plymouth-quit*` para tapar la consola — plymouthd se queda agarrando el GPU y Hyprland no arranca (`CBackend::create() failed!`), sistema en bucle de crash. Ya probado y revertido; por eso se usa greetd (que no tiene consola que tapar) + el override `--retain-splash`.
 
-**SDDM** queda deshabilitado pero **instalado** como red de seguridad. Si el arranque sin DM falla: `Ctrl+Alt+F2`, login, `sudo systemctl start sddm`. Para volver a SDDM de forma permanente: `sudo systemctl enable sddm`, borrar el drop-in de `getty@tty1` y `sudo systemctl daemon-reload`.
+**SDDM** queda deshabilitado pero **instalado** como segunda red de seguridad. Si el arranque falla: menú de Limine → snapshot, o desde el prompt `login:` de greetd / un TTY: `sudo systemctl disable greetd && sudo systemctl enable sddm`.
 
 ## Crédito y licencia
 

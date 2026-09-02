@@ -80,17 +80,6 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
     link_path "$unit_src" "$CONFIG_DIR/systemd/user/$(basename "$unit_src")" || true
 done
 
-# --- Drop-ins de fish ($HOME/.config/fish/conf.d) ---------------------------
-# Solo se enlazan nuestros archivos sueltos; config.fish y el resto de la
-# config de fish son del usuario/CachyOS y no viven en este repo.
-# chocomazapan-login.fish arranca la sesion grafica (uwsm + Hyprland) desde
-# el login de tty1 -- ver la seccion de root mas abajo (autologin de agetty).
-mkdir -p "$CONFIG_DIR/fish/conf.d"
-for fish_src in "$REPO_DIR"/fish/conf.d/*.fish; do
-    [ -f "$fish_src" ] || continue
-    link_path "$fish_src" "$CONFIG_DIR/fish/conf.d/$(basename "$fish_src")" || true
-done
-
 # --- Extensiones de Nautilus (nautilus-python) -----------------------------
 # transcode.py agrega "Transcode" al menú contextual de imágenes/videos,
 # llamando a chocomazapan-transcode. Requiere el paquete 'nautilus-python'.
@@ -271,20 +260,26 @@ HOOK
         ;;
 esac
 
-# --- Arranque y login sin display manager (opcional, root) ------------------
-# Deja el arranque asi:  Plymouth (tema propio) -> autologin de agetty en tty1
-# -> fish lanza Hyprland via uwsm -> Hyprland arranca con hyprlock, que es donde
-# se escribe la contrasena. SDDM se deshabilita pero NO se desinstala (fallback:
-# desde un TTY, `sudo systemctl start sddm`).
+# --- Arranque y login sin display manager pesado (opcional, root) ----------
+# Deja el arranque asi:  Plymouth (tema propio) -> greetd autologin en vt1
+# -> uwsm lanza Hyprland -> Hyprland arranca con hyprlock, que es donde se
+# escribe la contrasena. Sin texto de consola. SDDM se deshabilita pero NO se
+# desinstala (fallback: desde un TTY, `sudo systemctl disable greetd` +
+# `sudo systemctl enable sddm`).
 BOOT_STEPS=$(cat <<STEPS
-  # 1. Tema de Plymouth propio
+  # 1. Tema de Plymouth propio + no cortar el splash a negro
   sudo cp -rT "$REPO_DIR/plymouth/chocomazapan" /usr/share/plymouth/themes/chocomazapan
   sudo plymouth-set-default-theme -R chocomazapan
   sudo rm -rf /usr/share/plymouth/themes/omarchy
-  # 2. Autologin de consola en tty1
-  sudo install -Dm644 "$REPO_DIR/system/getty@tty1.service.d/autologin.conf" \\
-    /etc/systemd/system/getty@tty1.service.d/autologin.conf
+  sudo install -Dm644 "$REPO_DIR/system/plymouth-quit.service.d/override.conf" \\
+    /etc/systemd/system/plymouth-quit.service.d/override.conf
+  # 2. greetd como login (autologin -> Hyprland; agreety de fallback)
+  sudo pacman -S --needed greetd
+  getent passwd greeter >/dev/null || sudo useradd -r -M -G video -s /usr/bin/nologin greeter
+  sudo install -Dm644 "$REPO_DIR/system/greetd/config.toml" /etc/greetd/config.toml
+  sudo rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
   sudo systemctl daemon-reload
+  sudo systemctl enable greetd.service
   # 3. Fuera SDDM (queda instalado como fallback)
   sudo systemctl disable sddm.service
   sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
@@ -296,7 +291,7 @@ STEPS
 )
 
 if [ -t 0 ] && command -v sudo >/dev/null 2>&1; then
-    read -rp "¿Configurar el arranque sin display manager (Plymouth propio + autologin + hyprlock)? [y/N] " BOOT_ANS || BOOT_ANS="N"
+    read -rp "¿Configurar el arranque sin display manager (Plymouth propio + greetd autologin + hyprlock)? [y/N] " BOOT_ANS || BOOT_ANS="N"
 else
     BOOT_ANS="N"
 fi
@@ -315,12 +310,24 @@ case "${BOOT_ANS:-N}" in
             fi
         fi
         sudo rm -rf /usr/share/plymouth/themes/omarchy
+        # No cortar el splash a negro en el handoff a Hyprland (--retain-splash).
+        # OJO: es un override del ExecStart, NO un `systemctl mask` -- enmascarar
+        # plymouth-quit deja a plymouthd de DRM master y Hyprland revienta.
+        sudo install -Dm644 "$REPO_DIR/system/plymouth-quit.service.d/override.conf" \
+            /etc/systemd/system/plymouth-quit.service.d/override.conf \
+            && echo "Instalado: override de plymouth-quit (--retain-splash)."
 
-        # 2. Autologin de agetty en tty1 -----------------------------------
-        sudo install -Dm644 "$REPO_DIR/system/getty@tty1.service.d/autologin.conf" \
-            /etc/systemd/system/getty@tty1.service.d/autologin.conf \
-            && echo "Instalado: /etc/systemd/system/getty@tty1.service.d/autologin.conf"
+        # 2. greetd como login -------------------------------------------
+        sudo pacman -S --needed greetd
+        if ! getent passwd greeter >/dev/null; then
+            sudo useradd -r -M -G video -s /usr/bin/nologin greeter \
+                && echo "Creado el usuario de sistema 'greeter'."
+        fi
+        sudo install -Dm644 "$REPO_DIR/system/greetd/config.toml" /etc/greetd/config.toml \
+            && echo "Instalado: /etc/greetd/config.toml"
+        sudo rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
         sudo systemctl daemon-reload
+        sudo systemctl enable greetd.service && echo "greetd habilitado (login en vt1)."
 
         # 3. Deshabilitar SDDM (sin desinstalar) --------------------------
         if [ "$(systemctl is-enabled sddm.service 2>/dev/null)" = "enabled" ]; then
@@ -350,7 +357,8 @@ case "${BOOT_ANS:-N}" in
 
         echo
         echo "Listo. Reinicia para probar: Plymouth -> hyprlock (contrasena) -> escritorio."
-        echo "Si algo falla: Ctrl+Alt+F2, login, 'sudo systemctl start sddm'."
+        echo "Si el arranque falla: menu de Limine -> snapshot, o desde el prompt"
+        echo "'login:' de greetd / un TTY:  sudo systemctl disable greetd && sudo systemctl enable sddm"
         ;;
     *)
         echo "Saltado el arranque sin display manager. Para hacerlo luego:"
