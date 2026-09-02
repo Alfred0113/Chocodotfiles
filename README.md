@@ -43,7 +43,7 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `fish/conf.d/` → archivos sueltos enlazados dentro de `~/.config/fish/conf.d/` (no la carpeta ni `config.fish`, que son del usuario/CachyOS). Por ahora solo `chocomazapan-login.fish`, que arranca la sesión gráfica desde el login de tty1 (ver "Arranque y login")
 - `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
-- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `getty@tty1.service.d/autologin.conf` (autologin de consola) y `sudoers.d/*` (`chocomazapan-plymouth` = cerrar el splash sin contraseña; `chocomazapan-timedatectl` = cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
+- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `getty@tty1.service.d/autologin.conf` (autologin de consola) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
 - `nautilus/` → extensiones de `nautilus-python` enlazadas en `~/.local/share/nautilus-python/extensions/`. Por ahora `transcode.py` (menú contextual "Transcode" → `chocomazapan-transcode`)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
@@ -147,9 +147,10 @@ Sin display manager. El camino es:
 2. **Autologin de consola** — `system/getty@tty1.service.d/autologin.conf` (drop-in de `agetty --autologin alfredo`) → `/etc/systemd/system/getty@tty1.service.d/`.
 3. **Sesión gráfica** — `fish/conf.d/chocomazapan-login.fish`: en el login de tty1 hace `exec uwsm start -g -1 -e -D Hyprland hyprland.desktop` (protegido por `uwsm check may-start`, no-op en cualquier otro shell).
 4. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
-5. **Transición sin parpadeo** — `install.sh` enmascara `plymouth-quit.service` y `plymouth-quit-wait.service`, así el splash de Plymouth se mantiene encima de la consola (agetty/login/fish) durante todo el arranque. Ya con Hyprland arriba, `autostart.lua` corre `sudo -n plymouth quit --retain-splash` (permitido sin contraseña por `system/sudoers.d/chocomazapan-plymouth`) para cerrarlo justo cuando hyprlock ya está pintando. Extras: `home/.hushlogin` (sin MOTD) y `fish_greeting` vacío.
 
-**SDDM** queda deshabilitado pero **instalado** como red de seguridad. Si el arranque sin DM falla: `Ctrl+Alt+F2` (la consola aparece ahí aunque Plymouth siga en tty1), login, `sudo systemctl start sddm`. Para volver a SDDM de forma permanente: `sudo systemctl enable sddm`, `sudo systemctl unmask plymouth-quit.service plymouth-quit-wait.service`, borrar el drop-in de `getty@tty1` y `sudo systemctl daemon-reload`.
+Entre el splash y hyprlock hay ~1 s de texto de consola (agetty/login/fish). Se reduce con `home/.hushlogin` (sin MOTD/last-login), `fish_greeting` vacío y el `quiet` del kernel, pero no se elimina del todo: eso requeriría un handoff DRM dedicado (un binario de "seamless login" que reemplace a getty). **No** intentar enmascarar `plymouth-quit*` para tapar la consola — plymouthd se queda agarrando el GPU y Hyprland no arranca (`CBackend::create() failed!`), dejando el sistema en un bucle de crash. Ya probado y revertido.
+
+**SDDM** queda deshabilitado pero **instalado** como red de seguridad. Si el arranque sin DM falla: `Ctrl+Alt+F2`, login, `sudo systemctl start sddm`. Para volver a SDDM de forma permanente: `sudo systemctl enable sddm`, borrar el drop-in de `getty@tty1` y `sudo systemctl daemon-reload`.
 
 ## Crédito y licencia
 
