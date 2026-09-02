@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# meta:summary=Crea un snapshot de snapper (config root) bajo demanda — un punto de restauración antes de experimentar.
+
+# snapper solo lo corre root (ALLOW_USERS vacío), así que va por pkexec (un
+# solo prompt del agente de polkit). Se marca important=yes para que la
+# limpieza lo cuente aparte (NUMBER_LIMIT_IMPORTANT) y no lo borre pronto.
+if pkexec snapper -c root create \
+    --type single \
+    --cleanup-algorithm number \
+    --description "manual (chocomazapan)" \
+    --userdata "important=yes"
+then
+  chocomazapan-swayosd-client --custom-message "Punto de restauración creado" 2>/dev/null \
+    || notify-send -u low "Snapper" "Punto de restauración creado"
+else
+  notify-send -u critical "Snapper" "No se pudo crear el snapshot"
+  exit 1
+fi

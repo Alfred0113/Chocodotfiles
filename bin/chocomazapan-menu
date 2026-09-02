@@ -69,10 +69,11 @@ show_toggle_menu() {
 # restarting the background daemons (waybar, mako, walker, hypridle) if one
 # gets into a bad state.
 show_setup_menu() {
-  case $(menu "Setup" "  Audio\n  Wifi\n󰂯  Bluetooth\n  Restart services") in
+  case $(menu "Setup" "  Audio\n  Wifi\n󰂯  Bluetooth\n  Restart services\n󰮕  Crear snapshot") in
   *Audio*) chocomazapan-launch-audio ;;
   *Wifi*) chocomazapan-launch-wifi ;;
   *Bluetooth*) chocomazapan-launch-bluetooth ;;
+  *snapshot*) chocomazapan-snapshot-create ;;
   *Restart*) show_restart_menu ;;
   *) show_main_menu ;;
   esac
@@ -100,9 +101,10 @@ show_style_menu() {
 
 # Session/power actions.
 show_system_menu() {
-  case $(menu "System" "  Lock\n󰒲  Suspend\n󰍃  Logout\n󰜉  Restart\n󰐥  Shutdown") in
+  case $(menu "System" "  Lock\n󰒲  Suspend\n󰤄  Hibernar\n󰍃  Logout\n󰜉  Restart\n󰐥  Shutdown") in
   *Lock*) chocomazapan-system-lock ;;
   *Suspend*) systemctl suspend ;;
+  *Hibernar*) systemctl hibernate ;;
   *Logout*) chocomazapan-system-logout ;;
   *Restart*) chocomazapan-system-reboot ;;
   *Shutdown*) chocomazapan-system-shutdown ;;

@@ -74,6 +74,13 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 
 `chocomazapan-battery-monitor.{service,timer}` (cada 30s tras 1 min de boot): aviso de batería baja al 10%. `install.sh` solo lo activa si `chocomazapan-is-laptop` da verdadero; en desktop se enlaza pero no se arranca.
 
+## Menú (Súper+Ctrl+O)
+
+Además de lo de siempre (Capture, Toggle, Setup, Style, System), dos añadidos que dependen del sistema, no del repo:
+
+- **System → Hibernar** (`systemctl hibernate`) — requiere swap ≥ RAM y `resume=`/`resume_offset=` en la línea de kernel (CachyOS lo configura al instalar).
+- **Setup → Crear snapshot** (`chocomazapan-snapshot-create`) — snapshot de snapper de `/` bajo demanda vía `pkexec`, marcado `important=yes` para que no lo borre pronto la limpieza. Un "punto de restauración" manual antes de hacer cosas locas; se ve en el menú de arranque de Limine. Necesita `snapper` + `limine-snapper-sync` (los trae CachyOS).
+
 ## Laptop vs desktop
 
 No hay dos ramas de config: es una sola, pensada para desktop, con lo de laptop en tres estados.
