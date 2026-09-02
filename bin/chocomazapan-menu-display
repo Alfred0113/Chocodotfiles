@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# meta:summary=Menú (F7 / XF86Display) para elegir modo de pantallas: interna, externa, extender o espejo.
+
+# Conectores físicamente conectados. Los nombres de /sys/class/drm
+# (DP-1, eDP-1, HDMI-A-1, ...) coinciden con los de hyprctl.
+connected=()
+for p in /sys/class/drm/*/status; do
+  [[ $(cat "$p" 2>/dev/null) == connected ]] || continue
+  n=$(basename "$(dirname "$p")")
+  connected+=("${n#card*-}")
+done
+
+internal=""
+externals=()
+for n in "${connected[@]}"; do
+  case "$n" in
+    eDP-* | LVDS-* | eDP | LVDS) internal="$n" ;;
+    *) externals+=("$n") ;;
+  esac
+done
+
+notify() {
+  chocomazapan-swayosd-client --custom-message "$1" 2>/dev/null || notify-send -u low "$1"
+}
+
+if (( ${#externals[@]} == 0 )); then
+  notify "No hay pantalla externa conectada"
+  exit 0
+fi
+ext="${externals[0]}"
+[[ -n $internal ]] || internal="${connected[0]}"
+
+sel=$(printf '%b\n' \
+  "\U000f0322  Solo interna" \
+  "\U000f0379  Solo externa" \
+  "\U000f0f5c  Extender" \
+  "\U000f018f  Espejo" \
+  | chocomazapan-launch-walker --dmenu -p "Pantallas…")
+
+case "$sel" in
+  *"Solo interna"*)
+    hyprctl keyword monitor "$internal,preferred,auto,1"
+    for e in "${externals[@]}"; do hyprctl keyword monitor "$e,disable"; done
+    ;;
+  *"Solo externa"*)
+    hyprctl keyword monitor "$ext,preferred,auto,1"
+    hyprctl keyword monitor "$internal,disable"
+    ;;
+  *"Extender"*)
+    hyprctl keyword monitor "$internal,preferred,auto,1"
+    hyprctl keyword monitor "$ext,preferred,auto-right,1"
+    ;;
+  *"Espejo"*)
+    hyprctl keyword monitor "$internal,preferred,auto,1"
+    hyprctl keyword monitor "$ext,preferred,auto,1,mirror,$internal"
+    ;;
+  *) exit 0 ;;
+esac

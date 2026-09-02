@@ -91,11 +91,12 @@ Todo esto ya está bindeado en `hypr/core/bindings/media.lua` (los scripts usan 
 | F1 / F2 / F3 | mute / volumen − / volumen + (`XF86Audio*`, OSD por SwayOSD) |
 | F4 | mute de micrófono (+ LED `platform::micmute`) |
 | F5 / F6 | brillo − / + (Shift = mín/máx, Alt = pasos de 1%) |
+| F7 | menú de pantallas (`chocomazapan-menu-display`): solo interna / solo externa / extender / espejo — usa la primera externa conectada |
 | F8 | modo avión (`chocomazapan-toggle-airplane`, bloquea/desbloquea rfkill) |
 | Fn+Space | luz del teclado — la maneja el kernel (`thinkpad_acpi`) directo, sin OSD |
 | media (play/prev/next) | vía `playerctl` |
 
-`install.sh` instala `brightnessctl` y `playerctl` y activa `swayosd-server.service` (sin él las teclas de volumen/brillo no hacen nada). **F7** (`XF86Display`, cambiar a proyector) queda sin bindear — es parte del manejo de monitores de la Fase 8.
+`install.sh` instala `brightnessctl` y `playerctl` y activa `swayosd-server.service` (sin él las teclas de volumen/brillo no hacen nada). El menú de F7 cambia el modo de pantallas para la sesión (con `hyprctl keyword monitor`); al reiniciar Hyprland vuelve a lo de `monitors.lua`. Solo maneja una pantalla externa a la vez.
 
 ## Windows VM
 
