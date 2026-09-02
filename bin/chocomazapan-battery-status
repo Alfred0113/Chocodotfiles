@@ -2,7 +2,13 @@
 
 # meta:summary=Returns a formatted battery status string with percentage and power draw/charge.
 
-battery_info=$(upower -i $(upower -e | grep BAT))
+bat=$(upower -e 2>/dev/null | grep -m1 BAT)
+if [[ -z $bat ]]; then
+    echo "Sin batería (equipo de escritorio)"
+    exit 0
+fi
+
+battery_info=$(upower -i "$bat")
 
 percentage=$(echo "$battery_info" | awk '/percentage/ {
     print int($2)

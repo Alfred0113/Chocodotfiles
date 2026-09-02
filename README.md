@@ -72,7 +72,15 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 
 ## Servicios de fondo
 
-`chocomazapan-battery-monitor.{service,timer}` (cada 30s tras 1 min de boot) es el único servicio propio activo hoy — no-op en este desktop (sin batería), real en la laptop.
+`chocomazapan-battery-monitor.{service,timer}` (cada 30s tras 1 min de boot): aviso de batería baja al 10%. `install.sh` solo lo activa si `chocomazapan-is-laptop` da verdadero; en desktop se enlaza pero no se arranca.
+
+## Laptop vs desktop
+
+No hay dos ramas de config: es una sola, pensada para desktop, con lo de laptop en tres estados.
+
+- **`bin/chocomazapan-is-laptop`** — exit 0 si hay batería de sistema (`/sys/class/power_supply/BAT*`, ignorando periféricos) o `hostnamectl chassis` es portátil. Lo usan `install.sh` (timer de batería) y `o.is_laptop()` en la config Lua de Hyprland.
+- **Degrada solo**: módulo `battery` de Waybar (se oculta sin batería), teclas de brillo (`XF86MonBrightness*`/`XF86Kbd*`), `XF86TouchpadToggle`, `chocomazapan-battery-status` (dice "Sin batería" en vez de basura).
+- **Pendiente Fase 8** (scripts sin vendorizar): binds de lid switch / pantalla interna (`hypr/core/bindings/utilities.lua`), `chocomazapan-powerprofiles-init` y `chocomazapan-hyprland-monitor-watch` (`autostart.lua`) — al descomentarlos, envolver en `if o.is_laptop() then`.
 
 ## Windows VM
 

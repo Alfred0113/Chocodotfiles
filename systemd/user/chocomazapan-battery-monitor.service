@@ -5,5 +5,7 @@ After=graphical-session.target
 [Service]
 Type=oneshot
 ExecStart=%h/dotfiles/bin/chocomazapan-battery-monitor
-Environment=DISPLAY=:0
+# El servicio --user no hereda el PATH de la sesión gráfica; sin esto no
+# encuentra chocomazapan-battery-remaining.
+Environment=PATH=%h/dotfiles/bin:/usr/local/bin:/usr/bin:/bin
 LogLevelMax=warning

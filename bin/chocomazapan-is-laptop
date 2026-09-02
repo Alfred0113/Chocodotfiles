@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# meta:summary=Exit 0 si el equipo es laptop (batería de sistema / chasis portátil), 1 si no.
+
+# Batería del propio equipo. Los periféricos inalámbricos también aparecen
+# en /sys/class/power_supply, pero con type != Battery o scope == Device.
+for ps in /sys/class/power_supply/*; do
+  [ -r "$ps/type" ] || continue
+  [ "$(cat "$ps/type" 2>/dev/null)" = "Battery" ] || continue
+  [ "$(cat "$ps/scope" 2>/dev/null || echo System)" = "Device" ] && continue
+  exit 0
+done
+
+case "$(hostnamectl chassis 2>/dev/null)" in
+  laptop | convertible | tablet | handset) exit 0 ;;
+esac
+
+exit 1

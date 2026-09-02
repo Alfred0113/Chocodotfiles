@@ -253,9 +253,18 @@ esac
 # --- Servicios systemd --user ------------------------------------------
 systemctl --user daemon-reload 2>/dev/null || true
 if [ -f "$REPO_DIR/systemd/user/chocomazapan-battery-monitor.timer" ]; then
-    systemctl --user enable --now chocomazapan-battery-monitor.timer 2>/dev/null \
-        && echo "Activado: chocomazapan-battery-monitor.timer" \
-        || echo "Aviso: no se pudo activar chocomazapan-battery-monitor.timer (¿sin sesión systemd --user?)." >&2
+    if "$REPO_DIR/bin/chocomazapan-is-laptop"; then
+        systemctl --user enable --now chocomazapan-battery-monitor.timer 2>/dev/null \
+            && echo "Activado: chocomazapan-battery-monitor.timer (laptop)" \
+            || echo "Aviso: no se pudo activar chocomazapan-battery-monitor.timer." >&2
+    else
+        # Escritorio: sin batería que vigilar. Se para y se quita del target,
+        # pero NO 'disable' (borraría el symlink de la unidad).
+        systemctl --user stop chocomazapan-battery-monitor.timer 2>/dev/null || true
+        rm -f "$CONFIG_DIR/systemd/user/timers.target.wants/chocomazapan-battery-monitor.timer"
+        systemctl --user daemon-reload 2>/dev/null || true
+        echo "chocomazapan-battery-monitor.timer no se activa (no es laptop)."
+    fi
 fi
 
 # --- Pasos manuales restantes ------------------------------------------

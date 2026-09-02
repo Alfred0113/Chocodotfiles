@@ -29,7 +29,9 @@ o.bind("SUPER + SHIFT + ALT + COMMA", "Restore last notification", "makoctl rest
 
 o.bind_toggle("SUPER + CTRL + I", "Toggle locking on idle", "idle")
 o.bind_toggle("SUPER + CTRL + N", "Toggle nightlight", "nightlight")
--- Laptop-only binds (internal display / lid switch) deferred to Fase 8.
+-- Laptop-only binds (display interno / lid switch) deferred a Fase 8: los
+-- scripts que llaman (monitor-internal, monitor-internal-mirror) aún no
+-- están vendorizados. Al descomentar, envolver en `if o.is_laptop() then`.
 -- o.bind("SUPER + CTRL + Delete", "Toggle laptop display", "chocomazapan-hyprland-monitor-internal toggle")
 -- o.bind("SUPER + CTRL + ALT + Delete", "Toggle laptop display mirroring", "chocomazapan-hyprland-monitor-internal-mirror toggle")
 -- o.bind("switch:on:Lid Switch", nil, "chocomazapan-hw-external-monitors && chocomazapan-hyprland-monitor-internal off", { locked = true })

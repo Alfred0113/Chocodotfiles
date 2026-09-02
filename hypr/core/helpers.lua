@@ -89,6 +89,13 @@ function o.notify(message)
   return "notify-send -u low " .. shell_quote(message)
 end
 
+-- true si el equipo es laptop (delega en bin/chocomazapan-is-laptop).
+-- Para envolver binds/autostart que solo aplican en portátil.
+function o.is_laptop()
+  local ok = os.execute("chocomazapan-is-laptop")
+  return ok == true or ok == 0
+end
+
 function o.window(match, rules)
   rules.match = rules.match or {}
 
