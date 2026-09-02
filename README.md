@@ -82,7 +82,7 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 
 Además de lo de siempre (Capture, Toggle, Setup, Style, System), dos añadidos que dependen del sistema, no del repo:
 
-- **System → Hibernar** (`systemctl hibernate`) — requiere swap ≥ RAM y `resume=`/`resume_offset=` en la línea de kernel (CachyOS lo configura al instalar).
+- **System → Hibernar** (`systemctl hibernate`) — **solo aparece en laptop** (`chocomazapan-is-laptop`). Requiere swap ≥ RAM y `resume=`/`resume_offset=` en la línea de kernel (CachyOS lo configura al instalar). Se oculta en el desktop porque el driver `nvidia-open` 610 rompe el resume desde hibernación (cascada de `Xid 13`, bug upstream sin fix a sep-2026); ahí se usa Suspender. En la T14 (sin NVIDIA) funciona.
 - **Setup → Crear snapshot** (`chocomazapan-snapshot-create`) — snapshot de snapper de `/` bajo demanda vía `pkexec`, marcado `important=yes` para que no lo borre pronto la limpieza. Un "punto de restauración" manual antes de hacer cosas locas; se ve en el menú de arranque de Limine. Necesita `snapper` + `limine-snapper-sync` (los trae CachyOS).
 
 ## Laptop vs desktop

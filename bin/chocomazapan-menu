@@ -101,7 +101,18 @@ show_style_menu() {
 
 # Session/power actions.
 show_system_menu() {
-  case $(menu "System" "  Lock\n󰒲  Suspend\n󰤄  Hibernar\n󰍃  Logout\n󰜉  Restart\n󰐥  Shutdown") in
+  # Hibernar solo en laptop: en el desktop con NVIDIA el driver 610 rompe el
+  # resume (Xid 13, bug upstream). Se reactiva solo cuando haya fix.
+  local items="  Lock
+󰒲  Suspend"
+  chocomazapan-is-laptop && items="$items
+󰤄  Hibernar"
+  items="$items
+󰍃  Logout
+󰜉  Restart
+󰐥  Shutdown"
+
+  case $(menu "System" "$items") in
   *Lock*) chocomazapan-system-lock ;;
   *Suspend*) systemctl suspend ;;
   *Hibernar*) systemctl hibernate ;;
