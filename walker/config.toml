@@ -1,4 +1,5 @@
 force_keyboard_focus = true                                                 # forces keyboard forcus to stay in Walker
+single_click_activation = true                                              # activate items with a single click (default is double click)
 selection_wrap = true                                                       # wrap list if at bottom or top
 theme = "chocomazapan-blur"                                                 # theme to use
 hide_action_hints = true                                                    # globally hide the action hints
