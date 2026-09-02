@@ -6,6 +6,10 @@
 
 [terminal]
 vt = 1
+# No hacer chvt: Plymouth ya dejo su splash en el vt1 (--retain-splash), un
+# switch lo repintaria a consola. greetd corre la sesion en vt1 sin cambiar de
+# VT, asi el splash se mantiene hasta que Hyprland pinta.
+switch = false
 
 # Fallback. Si el autologin de abajo falla, o al cerrar sesion, sale este prompt
 # 'login:' de texto (agreety). Tras entrar arranca Hyprland. NO hay crash-loop:

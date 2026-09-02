@@ -142,11 +142,12 @@ No se tocaron: drivers NVIDIA (`chwd`), fish shell, ni el paquete `hyprland` —
 
 Sin SDDM. El camino es:
 
-1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs; el hook `plymouth` ya está en `/etc/mkinitcpio.conf`). `plymouth-quit.service` lleva un override para salir con `--retain-splash` (deja el logo congelado en el handoff a Hyprland, sin negro).
-2. **greetd** — `system/greetd/config.toml` → `/etc/greetd/config.toml`. Demonio de login mínimo (sin Qt/tema). Hace el login por PAM directo (sin getty, sin shell, sin MOTD) → **cero texto en consola**.
+1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs; el hook `plymouth` ya está en `/etc/mkinitcpio.conf`). `plymouth-quit.service` lleva un override para salir con `--retain-splash` (deja el logo congelado en el framebuffer durante el handoff a Hyprland, sin negro).
+2. **Cmdline del kernel** — `install.sh` añade `loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0` a `/etc/default/limine` (+ `limine-update`): sin ruido de systemd/udev ni cursor parpadeante bajo el splash.
+3. **greetd** — `system/greetd/config.toml` → `/etc/greetd/config.toml`. Demonio de login mínimo (sin Qt/tema). Hace el login por PAM directo (sin getty, sin shell, sin MOTD) → **cero texto en consola**. `[terminal] switch = false` para que no repinte el vt1 y el splash retenido se mantenga hasta que Hyprland pinta.
    - `[initial_session]` = autologin de `alfredo` al arrancar: lanza `uwsm start … Hyprland` sin pedir contraseña a nivel login.
    - `[default_session]` = `agreety` (prompt `login:` de texto) como fallback: si el autologin falla o al cerrar sesión. **No hay crash-loop** — si Hyprland revienta, greetd vuelve aquí, no lo relanza en bucle.
-3. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
+4. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
 
 ⚠️ **No** enmascarar `plymouth-quit*` para tapar la consola — plymouthd se queda agarrando el GPU y Hyprland no arranca (`CBackend::create() failed!`), sistema en bucle de crash. Ya probado y revertido; por eso se usa greetd (que no tiene consola que tapar) + el override `--retain-splash`.
 

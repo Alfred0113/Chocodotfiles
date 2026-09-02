@@ -273,7 +273,11 @@ BOOT_STEPS=$(cat <<STEPS
   sudo rm -rf /usr/share/plymouth/themes/omarchy
   sudo install -Dm644 "$REPO_DIR/system/plymouth-quit.service.d/override.conf" \\
     /etc/systemd/system/plymouth-quit.service.d/override.conf
-  # 2. greetd como login (autologin -> Hyprland; agreety de fallback)
+  # 2. Cmdline del kernel mas silencioso (sin ruido de consola bajo el splash)
+  grep -q vt.global_cursor_default /etc/default/limine || \\
+    echo 'KERNEL_CMDLINE[default]+=" loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"' | sudo tee -a /etc/default/limine
+  sudo limine-update
+  # 3. greetd como login (autologin -> Hyprland; agreety de fallback)
   sudo pacman -S --needed greetd
   getent passwd greeter >/dev/null || sudo useradd -r -M -G video -s /usr/bin/nologin greeter
   sudo install -Dm644 "$REPO_DIR/system/greetd/config.toml" /etc/greetd/config.toml
@@ -317,7 +321,19 @@ case "${BOOT_ANS:-N}" in
             /etc/systemd/system/plymouth-quit.service.d/override.conf \
             && echo "Instalado: override de plymouth-quit (--retain-splash)."
 
-        # 2. greetd como login -------------------------------------------
+        # 2. Cmdline del kernel mas silencioso ---------------------------
+        # Sin esto, al ceder Plymouth el framebuffer se ve el log de systemd/
+        # udev antes de que Hyprland pinte.
+        if grep -q vt.global_cursor_default /etc/default/limine; then
+            echo "cmdline ya tiene los flags de silencio."
+        else
+            sudo cp /etc/default/limine /etc/default/limine.pre-quiet-bak
+            echo 'KERNEL_CMDLINE[default]+=" loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"' \
+                | sudo tee -a /etc/default/limine >/dev/null
+            sudo limine-update && echo "cmdline: + loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"
+        fi
+
+        # 3. greetd como login -------------------------------------------
         sudo pacman -S --needed greetd
         if ! getent passwd greeter >/dev/null; then
             sudo useradd -r -M -G video -s /usr/bin/nologin greeter \
@@ -329,7 +345,7 @@ case "${BOOT_ANS:-N}" in
         sudo systemctl daemon-reload
         sudo systemctl enable greetd.service && echo "greetd habilitado (login en vt1)."
 
-        # 3. Deshabilitar SDDM (sin desinstalar) --------------------------
+        # 4. Deshabilitar SDDM (sin desinstalar) --------------------------
         if [ "$(systemctl is-enabled sddm.service 2>/dev/null)" = "enabled" ]; then
             sudo systemctl disable sddm.service && echo "SDDM deshabilitado (sigue instalado como fallback)."
         else
@@ -341,7 +357,7 @@ case "${BOOT_ANS:-N}" in
             sudo sed -i 's/^Session=omarchy$/Session=hyprland/' /etc/sddm.conf.d/autologin.conf
         fi
 
-        # 4. Reglas sudoers propias (validadas con visudo antes de instalar) ---
+        # 5. Reglas sudoers propias (validadas con visudo antes de instalar) ---
         for sd_src in "$REPO_DIR"/system/sudoers.d/*; do
             [ -f "$sd_src" ] || continue
             sd_name="$(basename "$sd_src")"
