@@ -34,5 +34,19 @@ sudo modprobe mt7921e
 sudo limine-mkinitcpio && sudo reboot
 ```
 
+## `scripts/`
+
+Los scripts iterativos con que se llegó a este fix (el diagnóstico fue en 3 rondas).
+`install.sh` ya aplica el resultado final; estos quedan para re-aplicar a mano si un
+update de driver/kernel lo rompe, y para el rollback:
+
+| Script | Qué hace |
+|---|---|
+| `hibernate-nvidia-fix.sh` (v1) | modelo viejo de power-mgmt NVIDIA + `MODULES=()` + servicios |
+| `hibernate-nvidia-fix-v2.sh` | `FREEZE_USER_SESSIONS=true` + primer intento del hook mt7921 |
+| `hibernate-fix-v3.sh` | blacklist real de `mt7921e` + service + revierte `HibernateMode` |
+| `hibernate-*-rollback.sh` | deshacen su versión |
+| **`hibernate-fix-NUKE-rollback.sh`** | **borra TODO (v1+v2+v3) y deja el sistema en stock** |
+
 Fuentes: guía de hibernación en r/cachyos, hilo de hibernación NVIDIA en r/hyprland,
 gist bmcbm, Arch Wiki (Power management, NVIDIA).
