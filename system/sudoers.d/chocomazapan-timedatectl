@@ -1,0 +1,3 @@
+# Cambiar la zona horaria sin contrasena (usado por chocomazapan-tz-select).
+# Reemplaza al viejo omarchy-tzupdate. Instalado por install.sh.
+%wheel ALL=(root) NOPASSWD: /usr/bin/timedatectl

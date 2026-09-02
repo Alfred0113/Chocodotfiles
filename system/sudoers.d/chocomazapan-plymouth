@@ -1,0 +1,4 @@
+# Permite cerrar el splash de Plymouth sin contrasena desde la sesion
+# grafica (transicion Plymouth -> hyprlock sin parpadeo de consola).
+# Enlazado/instalado por install.sh a /etc/sudoers.d/chocomazapan-plymouth
+alfredo ALL=(root) NOPASSWD: /usr/bin/plymouth quit --retain-splash

@@ -7,6 +7,10 @@
 #
 # Enlazado por install.sh a ~/.config/fish/conf.d/ (no se toca config.fish).
 
+# Sin saludo de fish: en el arranque el shell de tty1 no debe imprimir nada
+# antes de exec (el splash de Plymouth sigue encima, pero por si acaso).
+set -g fish_greeting ''
+
 if status is-login
     if type -q uwsm; and uwsm check may-start
         exec uwsm start -g -1 -e -D Hyprland hyprland.desktop

@@ -1,6 +1,11 @@
 -- Pantalla de login: sin display manager, Hyprland arranca bloqueado y la
 -- contrasena se escribe en hyprlock (ver fish/conf.d/chocomazapan-login.fish).
+-- El splash de Plymouth se mantiene hasta aqui (plymouth-quit* enmascarados
+-- por install.sh) para que no se vea la consola; primero hyprlock, luego se
+-- cierra Plymouth para una transicion limpia. `sudo -n` no cuelga si aun no
+-- esta el sudoers (system/sudoers.d/chocomazapan-plymouth).
 o.exec_on_start("hyprlock")
+o.exec_on_start("sudo -n /usr/bin/plymouth quit --retain-splash")
 
 o.launch_on_start("hypridle")
 o.launch_on_start("mako")

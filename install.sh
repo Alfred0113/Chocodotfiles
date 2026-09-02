@@ -289,6 +289,11 @@ BOOT_STEPS=$(cat <<STEPS
   sudo systemctl disable sddm.service
   sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
   sudo rm -rf /usr/share/sddm/themes/omarchy
+  # 4. Transicion sin parpadeo: mantener el splash hasta que arranque hyprlock
+  sudo systemctl mask plymouth-quit.service plymouth-quit-wait.service
+  # 5. Reglas sudoers propias (plymouth quit, timedatectl) y baja de las de omarchy
+  for f in "$REPO_DIR"/system/sudoers.d/*; do sudo install -Dm440 "\$f" "/etc/sudoers.d/\$(basename "\$f")"; done
+  sudo rm -f /etc/sudoers.d/99-omarchy-installer-reboot /etc/sudoers.d/omarchy-tzupdate
 STEPS
 )
 
@@ -330,6 +335,27 @@ case "${BOOT_ANS:-N}" in
         if [ -f /etc/sddm.conf.d/autologin.conf ]; then
             sudo sed -i 's/^Session=omarchy$/Session=hyprland/' /etc/sddm.conf.d/autologin.conf
         fi
+
+        # 4. Transicion sin parpadeo -------------------------------------
+        # Sin display manager, plymouth-quit* cerrarian el splash antes de que
+        # hyprlock pinte, dejando ver la consola. Se enmascaran y Plymouth lo
+        # cierra hypr/core/autostart.lua ("plymouth quit") una vez arriba.
+        sudo systemctl mask plymouth-quit.service plymouth-quit-wait.service \
+            && echo "Enmascarados: plymouth-quit{,-wait}.service (splash hasta hyprlock)."
+
+        # 5. Reglas sudoers propias (validadas con visudo antes de instalar) ---
+        for sd_src in "$REPO_DIR"/system/sudoers.d/*; do
+            [ -f "$sd_src" ] || continue
+            sd_name="$(basename "$sd_src")"
+            if sudo visudo -cf "$sd_src" >/dev/null 2>&1; then
+                sudo install -Dm440 "$sd_src" "/etc/sudoers.d/$sd_name" \
+                    && echo "Instalado: /etc/sudoers.d/$sd_name"
+            else
+                echo "Aviso: $sd_name invalido, se omite (revisalo a mano)." >&2
+            fi
+        done
+        # Baja de las reglas sudoers que dejo el instalador de la distro de ref.
+        sudo rm -f /etc/sudoers.d/99-omarchy-installer-reboot /etc/sudoers.d/omarchy-tzupdate
 
         echo
         echo "Listo. Reinicia para probar: Plymouth -> hyprlock (contrasena) -> escritorio."
