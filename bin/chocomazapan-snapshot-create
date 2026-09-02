@@ -1,18 +1,27 @@
 #!/bin/bash
 
-# meta:summary=Crea un snapshot de snapper (config root) bajo demanda — un punto de restauración antes de experimentar.
+# meta:summary=Crea un snapshot de snapper (config root) bajo demanda, pidiendo una descripción.
 
-# snapper solo lo corre root (ALLOW_USERS vacío), así que va por pkexec (un
-# solo prompt del agente de polkit). Se marca important=yes para que la
-# limpieza lo cuente aparte (NUMBER_LIMIT_IMPORTANT) y no lo borre pronto.
+# Pide el nombre/descripción con un input de Walker. Esc o vacío = cancelar.
+desc=$(chocomazapan-launch-walker --dmenu --inputonly \
+  --width 420 --minheight 1 --maxheight 200 \
+  -p "Describe el snapshot…" </dev/null 2>/dev/null)
+
+if [[ -z ${desc// } ]]; then
+  notify-send -u low "Snapper" "Snapshot cancelado"
+  exit 0
+fi
+
+# snapper solo lo corre root (ALLOW_USERS vacío) -> pkexec (un prompt de polkit).
+# important=yes para que la limpieza lo cuente aparte y no lo borre pronto.
 if pkexec snapper -c root create \
     --type single \
     --cleanup-algorithm number \
-    --description "manual (chocomazapan)" \
+    --description "$desc" \
     --userdata "important=yes"
 then
-  chocomazapan-swayosd-client --custom-message "Punto de restauración creado" 2>/dev/null \
-    || notify-send -u low "Snapper" "Punto de restauración creado"
+  chocomazapan-swayosd-client --custom-message "Snapshot: $desc" 2>/dev/null \
+    || notify-send -u low "Snapper" "Snapshot creado: $desc"
 else
   notify-send -u critical "Snapper" "No se pudo crear el snapshot"
   exit 1
