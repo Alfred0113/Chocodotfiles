@@ -1,0 +1,12 @@
+[Unit]
+Description=Cargar la WiFi MT7921 (blacklisteada por la hibernación)
+After=multi-user.target
+ConditionPathExists=/sys/bus/pci/devices/0000:09:00.0
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/modprobe mt7921e
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

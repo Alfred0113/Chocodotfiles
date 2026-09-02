@@ -383,6 +383,48 @@ case "${BOOT_ANS:-N}" in
         ;;
 esac
 
+# --- Hibernación en el desktop NVIDIA (root, opcional) -------------------
+# Especifico de ESTA maquina: RTX 3080 (nvidia-open) + WiFi MediaTek MT7921.
+# El driver nvidia-open ~610 rompe el resume desde hibernacion si carga en
+# early-KMS, y la MT7921 no sobrevive el ciclo interno de la hibernacion.
+# system/hibernate/ tiene la config que lo arregla (modelo viejo de
+# power-mgmt + NVIDIA fuera del initramfs + mt7921e blacklisteada y cargada
+# por un service). En la T14 (AMD, sin NVIDIA) NO hace falta nada de esto.
+HIB="$REPO_DIR/system/hibernate"
+if [ -t 0 ] && command -v sudo >/dev/null 2>&1 && lspci 2>/dev/null | grep -qi nvidia && [ -d "$HIB" ]; then
+    read -rp "¿Configurar la hibernación (desktop NVIDIA + MT7921)? [y/N] " HIB_ANS || HIB_ANS="N"
+else
+    HIB_ANS="N"
+fi
+case "${HIB_ANS:-N}" in
+    [yY]*)
+        sudo install -Dm644 -t /etc/modprobe.d/ "$HIB"/modprobe.d/*.conf
+        sudo rm -f /etc/modprobe.d/gsr-nvidia.conf   # des-enmascara gsr (Preserve=1)
+        sudo install -Dm644 -t /etc/mkinitcpio.conf.d/ "$HIB"/mkinitcpio.conf.d/*.conf
+        # El hook 'resume' sobra con el hook 'systemd' (Arch: "systemd replaces resume").
+        [ -f /etc/mkinitcpio.conf.d/resume.conf ] && \
+            sudo mv /etc/mkinitcpio.conf.d/resume.conf /etc/mkinitcpio.conf.d/resume.conf.disabled
+        sudo install -Dm644 -t /etc/systemd/system/ "$HIB"/systemd-system/mt7921e-load.service
+        sudo install -Dm644 -t /etc/systemd/system/systemd-hibernate.service.d/ \
+            "$HIB"/systemd-system/systemd-hibernate.service.d/*.conf
+        sudo install -Dm644 -t /etc/systemd/system/systemd-suspend-then-hibernate.service.d/ \
+            "$HIB"/systemd-system/systemd-suspend-then-hibernate.service.d/*.conf
+        sudo install -Dm755 -t /etc/systemd/system-sleep/ "$HIB"/system-sleep/50-mt7921-hibernate
+        sudo systemctl daemon-reload
+        sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service \
+                              nvidia-resume.service mt7921e-load.service
+        echo "Regenerando initramfs (limine-mkinitcpio)..."
+        sudo limine-mkinitcpio
+        echo "Listo. Reinicia y prueba 'systemctl hibernate' con un par de apps abiertas."
+        echo "Rollback: quitar system/hibernate/* de /etc + disable de los 4 services + limine-mkinitcpio."
+        ;;
+    *)
+        if lspci 2>/dev/null | grep -qi nvidia; then
+            echo "Saltado el paso de hibernación (aplícalo luego copiando system/hibernate/* a /etc — ver comentarios ahí)."
+        fi
+        ;;
+esac
+
 # --- Servicios systemd --user ------------------------------------------
 systemctl --user daemon-reload 2>/dev/null || true
 

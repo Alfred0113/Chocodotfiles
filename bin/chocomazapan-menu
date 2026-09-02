@@ -101,11 +101,12 @@ show_style_menu() {
 
 # Session/power actions.
 show_system_menu() {
-  # Hibernar solo en laptop: en el desktop con NVIDIA el driver 610 rompe el
-  # resume (Xid 13, bug upstream). Se reactiva solo cuando haya fix.
+  # Hibernar solo si el kernel la ofrece (swap + resume= configurados). En el
+  # desktop con NVIDIA hace falta la config de system/hibernate/ (install.sh);
+  # en la T14 (AMD) funciona sola.
   local items="  Lock
 󰒲  Suspend"
-  chocomazapan-is-laptop && items="$items
+  grep -qw disk /sys/power/state && items="$items
 󰤄  Hibernar"
   items="$items
 󰍃  Logout

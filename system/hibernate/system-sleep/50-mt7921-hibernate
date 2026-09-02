@@ -1,0 +1,25 @@
+#!/bin/bash
+# Solo hibernación: descarga la WiFi MT7921 y apaga el wakeup del dongle 2.4G
+# antes; los restaura después. Con mt7921e blacklisteada, udev no la recarga
+# a media hibernación.
+case "$2" in hibernate|suspend-then-hibernate) ;; *) exit 0 ;; esac
+
+dongle_wakeup() {  # $1 = enabled|disabled
+  for d in /sys/bus/usb/devices/*/; do
+    [ -f "$d/idVendor" ] || continue
+    [ "$(cat "$d/idVendor")" = "260d" ] && [ "$(cat "$d/idProduct")" = "1114" ] || continue
+    [ -w "$d/power/wakeup" ] && echo "$1" > "$d/power/wakeup" 2>/dev/null || true
+  done
+}
+
+case "$1" in
+  pre)
+    dongle_wakeup disabled
+    modprobe -r mt7921e 2>/dev/null || true
+    ;;
+  post)
+    modprobe mt7921e 2>/dev/null || true
+    dongle_wakeup enabled
+    ;;
+esac
+exit 0
