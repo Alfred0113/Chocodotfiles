@@ -282,6 +282,7 @@ BOOT_STEPS=$(cat <<STEPS
   sudo chown "\$USER" /usr/share/sddm/themes/chocomazapan/backgrounds
   "$REPO_DIR/bin/chocomazapan-sddm-bg"
   sudo install -Dm644 "$REPO_DIR/sddm/conf.d/chocomazapan.conf" /etc/sddm.conf.d/chocomazapan.conf
+  sudo install -Dm644 "$REPO_DIR/sddm/hyprland.lua" /usr/share/sddm/hyprland.lua  # teclado latam en el greeter
   sudo rm -f /etc/sddm.conf.d/autologin.conf
   sudo install -Dm644 "$REPO_DIR/system/chocomazapan-sddm-bg.service" /etc/systemd/system/chocomazapan-sddm-bg.service
   sudo rm -rf /usr/share/sddm/themes/omarchy
@@ -342,6 +343,8 @@ case "${BOOT_ANS:-N}" in
         "$REPO_DIR/bin/chocomazapan-sddm-bg" && echo "Fondo inicial de SDDM generado."
         sudo install -Dm644 "$REPO_DIR/sddm/conf.d/chocomazapan.conf" /etc/sddm.conf.d/chocomazapan.conf \
             && echo "Instalado: /etc/sddm.conf.d/chocomazapan.conf"
+        sudo install -Dm644 "$REPO_DIR/sddm/hyprland.lua" /usr/share/sddm/hyprland.lua \
+            && echo "Instalado: config del greeter (teclado latam)."
         sudo rm -f /etc/sddm.conf.d/autologin.conf && echo "Autologin de SDDM quitado."
         sudo install -Dm644 "$REPO_DIR/system/chocomazapan-sddm-bg.service" \
             /etc/systemd/system/chocomazapan-sddm-bg.service
