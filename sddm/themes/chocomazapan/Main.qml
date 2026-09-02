@@ -1,9 +1,8 @@
 // Tema SDDM "chocomazapan" -- imita a hyprlock: fondo borroso, reloj HH:MM,
 // fecha en es_MX, campo de contrasena tipo pildora con borde de acento.
-// QtQuick 6 puro; usa los objetos de contexto del greeter (sddm, userModel,
-// sessionModel, config).
+// Solo QtQuick base (sirve tanto en el greeter Qt5 como en el Qt6). Usa los
+// objetos de contexto del greeter: sddm, userModel, sessionModel, config.
 import QtQuick 2.15
-import QtQuick.Controls 2.15
 
 Item {
     id: root
@@ -60,14 +59,14 @@ Item {
         opacity: 0.75
         font.family: root.fontFamily
         font.pixelSize: root.dateSize
-        text: Qt.locale("es_MX").toString(new Date(), "dddd, d 'de' MMMM")
+        text: new Date().toLocaleDateString(Qt.locale("es_MX"), "dddd, d 'de' MMMM")
     }
     Timer {
         interval: 1000; running: true; repeat: true
         onTriggered: {
             var now = new Date()
             clock.text = Qt.formatDateTime(now, "HH:mm")
-            dateLabel.text = Qt.locale("es_MX").toString(now, "dddd, d 'de' MMMM")
+            dateLabel.text = now.toLocaleDateString(Qt.locale("es_MX"), "dddd, d 'de' MMMM")
         }
     }
 
@@ -106,7 +105,7 @@ Item {
                 color: root.cText
                 opacity: 0.45
                 font: pw.font
-                visible: pw.text.length === 0 && !pw.activeFocus
+                visible: pw.text.length === 0
             }
         }
     }
@@ -132,11 +131,11 @@ Item {
 
     Connections {
         target: sddm
-        function onLoginSucceeded() {
+        onLoginSucceeded: {
             fieldBox.border.color = root.cCheck
             errorLabel.text = ""
         }
-        function onLoginFailed() {
+        onLoginFailed: {
             root.failCount += 1
             errorLabel.text = "Fallo de autenticacion (" + root.failCount + ")"
             pw.text = ""
