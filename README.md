@@ -41,6 +41,10 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
   - `themes/aether/` → paleta estática vendorizada de referencia (ya no es el mecanismo activo); `themes/aether/backgrounds/` son los wallpapers de arranque que `install.sh` copia si no tienes ninguno
 - `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
+- `fish/conf.d/` → archivos sueltos enlazados dentro de `~/.config/fish/conf.d/` (no la carpeta ni `config.fish`, que son del usuario/CachyOS). Por ahora solo `chocomazapan-login.fish`, que arranca la sesión gráfica desde el login de tty1 (ver "Arranque y login")
+- `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
+- `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean). Por ahora `getty@tty1.service.d/autologin.conf` (autologin de consola)
+- `nautilus/` → extensiones de `nautilus-python` enlazadas en `~/.local/share/nautilus-python/extensions/`. Por ahora `transcode.py` (menú contextual "Transcode" → `chocomazapan-transcode`)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
 - `kitty/`, `foot/`, `ghostty/` → `~/.config/{kitty,foot,ghostty}` — cada config hace `include` del tema en `theming/current/<app>` (generado por aether). Terminales opcionales; la que se usa aquí es Alacritty.
@@ -131,7 +135,22 @@ La distro de dotfiles usada como referencia ya no está instalada en esta máqui
 
 **Pérdida real, sin arreglo posible:** una extensión pequeña de Chromium/Edge ("copy-url", copiaba la URL de la pestaña activa) vivía solo dentro de esos directorios y se perdió al borrarlos — nunca se vendorizó porque no apareció en el inventario de apps de la Fase 6. Se quitó la línea `--load-extension=` de `chromium-flags.conf` y `microsoft-edge-stable-flags.conf` a petición explícita, sin reemplazo.
 
+**Barrido final de remanentes.** Búsqueda completa por todo `$HOME` y `/etc`: ya no queda ninguna dependencia funcional de la distro de referencia. Se eliminaron restos muertos: `~/.local/state/omarchy` y `~/.cache/omarchy` (estado/caché viejos), tres symlinks rotos de skills para agentes de IA (`~/.{codex,agents,pi/agent}/skills/omarchy`), una extensión de `pi` que sondeaba una ruta ya borrada, la fuente de íconos `omarchy.ttf` (waybar usa ícono propio desde la Fase 4), un `plymouthd.confe` basura en `/etc`, y el drop-in `omarchy_resume.conf` de mkinitcpio (renombrado a `resume.conf`, mismo contenido). Se **repuntó** la extensión de Nautilus `transcode.py` (llamaba a `omarchy-transcode`/`omarchy-launch-floating-terminal-with-presentation`, ambos ya vendorizados) — ahora vive en `nautilus/` del repo. Pendiente de decisión del usuario: dos temas de VS Code (`bjarne.*-omarchy`) instalados pero no referenciados, y el `Environment=PATH` de `ollama.service` con un segmento muerto. Lo que **se deja**: un comentario en `/etc/modprobe.d/nvidia-hibernate-fix.conf` que cita el issue de origen del fix (zona NVIDIA, es solo una cita), el `container_name: omarchy-windows` del Windows VM (renombrarlo = recrear el contenedor de ~84 GB), y menciones que `aether` (tercero) escribe en sus propios archivos generados.
+
 No se tocaron: drivers NVIDIA (`chwd`), fish shell, ni el paquete `hyprland` — son independientes de la distro de referencia aunque vinieran del mismo instalador de terceros.
+
+## Arranque y login
+
+Sin display manager. El camino es:
+
+1. **Plymouth** — tema `chocomazapan` (`plymouth/chocomazapan/`, copiado a `/usr/share/plymouth/themes/` por `install.sh`). Renombrado del tema de la distro de referencia, con el `logo.png` ya personalizado (Tux + "AlfredPC"). Se fija con `sudo plymouth-set-default-theme -R chocomazapan` (regenera el initramfs; el hook `plymouth` ya está en `/etc/mkinitcpio.conf`).
+2. **Autologin de consola** — `system/getty@tty1.service.d/autologin.conf` (drop-in de `agetty --autologin alfredo`) → `/etc/systemd/system/getty@tty1.service.d/`.
+3. **Sesión gráfica** — `fish/conf.d/chocomazapan-login.fish`: en el login de tty1 hace `exec uwsm start -g -1 -e -D Hyprland hyprland.desktop` (protegido por `uwsm check may-start`, no-op en cualquier otro shell).
+4. **hyprlock como pantalla de login** — `hypr/core/autostart.lua` lo lanza como primer `exec-once`, así Hyprland arranca bloqueado y la contraseña se escribe ahí.
+
+**SDDM** queda deshabilitado pero **instalado** como red de seguridad. Si el arranque sin DM falla: `Ctrl+Alt+F2`, login, `sudo systemctl start sddm`. Para volver a SDDM de forma permanente: `sudo systemctl enable sddm` + borrar el drop-in de `getty@tty1` + `sudo systemctl daemon-reload`.
+
+Nota: entre el splash y hyprlock hay un parpadeo breve de texto de consola (trade-off de `agetty --autologin` + `exec uwsm`, sin binario de "seamless login" dedicado).
 
 ## Crédito y licencia
 

@@ -1,3 +1,7 @@
+-- Pantalla de login: sin display manager, Hyprland arranca bloqueado y la
+-- contrasena se escribe en hyprlock (ver fish/conf.d/chocomazapan-login.fish).
+o.exec_on_start("hyprlock")
+
 o.launch_on_start("hypridle")
 o.launch_on_start("mako")
 o.exec_on_start("! chocomazapan-toggle-enabled waybar-off && " .. o.launch("waybar"))

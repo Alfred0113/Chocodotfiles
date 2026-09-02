@@ -80,12 +80,33 @@ for unit_src in "$REPO_DIR"/systemd/user/*; do
     link_path "$unit_src" "$CONFIG_DIR/systemd/user/$(basename "$unit_src")" || true
 done
 
+# --- Drop-ins de fish ($HOME/.config/fish/conf.d) ---------------------------
+# Solo se enlazan nuestros archivos sueltos; config.fish y el resto de la
+# config de fish son del usuario/CachyOS y no viven en este repo.
+# chocomazapan-login.fish arranca la sesion grafica (uwsm + Hyprland) desde
+# el login de tty1 -- ver la seccion de root mas abajo (autologin de agetty).
+mkdir -p "$CONFIG_DIR/fish/conf.d"
+for fish_src in "$REPO_DIR"/fish/conf.d/*.fish; do
+    [ -f "$fish_src" ] || continue
+    link_path "$fish_src" "$CONFIG_DIR/fish/conf.d/$(basename "$fish_src")" || true
+done
+
+# --- Extensiones de Nautilus (nautilus-python) -----------------------------
+# transcode.py agrega "Transcode" al menú contextual de imágenes/videos,
+# llamando a chocomazapan-transcode. Requiere el paquete 'nautilus-python'.
+NAUTILUS_EXT_DIR="$HOME/.local/share/nautilus-python/extensions"
+mkdir -p "$NAUTILUS_EXT_DIR"
+for nau_src in "$REPO_DIR"/nautilus/*.py; do
+    [ -f "$nau_src" ] || continue
+    link_path "$nau_src" "$NAUTILUS_EXT_DIR/$(basename "$nau_src")" || true
+done
+
 # --- Paquetes -------------------------------------------------------------
 # PKGS_REPO viven en repos de pacman (extra / cachyos — 'walker' solo está
 # en el repo cachyos). PKGS_AUR necesitan un helper (paru/yay). Los
 # opcionales no se instalan solos. Se corre antes de generar el tema
 # porque esa parte necesita 'aether'.
-PKGS_REPO="hyprland waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd btop hunspell"
+PKGS_REPO="hyprland waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
 PKGS_AUR="aether python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
 PKGS_OPT="kitty foot ghostty mise"
 
@@ -247,6 +268,76 @@ HOOK
         echo "  Exec = $REPO_DIR/bin/chocomazapan-restart-walker"
         echo "  EOF"
         echo "  for d in /etc/{chromium,opt/chrome,opt/edge,brave}/policies/managed; do sudo mkdir -p \$d && sudo chown \$USER \$d; done"
+        ;;
+esac
+
+# --- Arranque y login sin display manager (opcional, root) ------------------
+# Deja el arranque asi:  Plymouth (tema propio) -> autologin de agetty en tty1
+# -> fish lanza Hyprland via uwsm -> Hyprland arranca con hyprlock, que es donde
+# se escribe la contrasena. SDDM se deshabilita pero NO se desinstala (fallback:
+# desde un TTY, `sudo systemctl start sddm`).
+BOOT_STEPS=$(cat <<STEPS
+  # 1. Tema de Plymouth propio
+  sudo cp -rT "$REPO_DIR/plymouth/chocomazapan" /usr/share/plymouth/themes/chocomazapan
+  sudo plymouth-set-default-theme -R chocomazapan
+  sudo rm -rf /usr/share/plymouth/themes/omarchy
+  # 2. Autologin de consola en tty1
+  sudo install -Dm644 "$REPO_DIR/system/getty@tty1.service.d/autologin.conf" \\
+    /etc/systemd/system/getty@tty1.service.d/autologin.conf
+  sudo systemctl daemon-reload
+  # 3. Fuera SDDM (queda instalado como fallback)
+  sudo systemctl disable sddm.service
+  sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
+  sudo rm -rf /usr/share/sddm/themes/omarchy
+STEPS
+)
+
+if [ -t 0 ] && command -v sudo >/dev/null 2>&1; then
+    read -rp "¿Configurar el arranque sin display manager (Plymouth propio + autologin + hyprlock)? [y/N] " BOOT_ANS || BOOT_ANS="N"
+else
+    BOOT_ANS="N"
+fi
+case "${BOOT_ANS:-N}" in
+    [yY]*)
+        # 1. Plymouth --------------------------------------------------------
+        sudo cp -rT "$REPO_DIR/plymouth/chocomazapan" /usr/share/plymouth/themes/chocomazapan \
+            && echo "Copiado: tema Plymouth 'chocomazapan'"
+        if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+            if [ "$(plymouth-set-default-theme 2>/dev/null)" != "chocomazapan" ]; then
+                echo "Fijando el tema y regenerando el initramfs (puede tardar)..."
+                sudo plymouth-set-default-theme -R chocomazapan
+            else
+                echo "Plymouth ya usa 'chocomazapan'. Si cambiaste el tema, corre:"
+                echo "  sudo plymouth-set-default-theme -R chocomazapan"
+            fi
+        fi
+        sudo rm -rf /usr/share/plymouth/themes/omarchy
+
+        # 2. Autologin de agetty en tty1 -----------------------------------
+        sudo install -Dm644 "$REPO_DIR/system/getty@tty1.service.d/autologin.conf" \
+            /etc/systemd/system/getty@tty1.service.d/autologin.conf \
+            && echo "Instalado: /etc/systemd/system/getty@tty1.service.d/autologin.conf"
+        sudo systemctl daemon-reload
+
+        # 3. Deshabilitar SDDM (sin desinstalar) --------------------------
+        if [ "$(systemctl is-enabled sddm.service 2>/dev/null)" = "enabled" ]; then
+            sudo systemctl disable sddm.service && echo "SDDM deshabilitado (sigue instalado como fallback)."
+        else
+            echo "SDDM ya estaba deshabilitado."
+        fi
+        sudo rm -f /usr/local/share/wayland-sessions/omarchy.desktop
+        sudo rm -rf /usr/share/sddm/themes/omarchy
+        if [ -f /etc/sddm.conf.d/autologin.conf ]; then
+            sudo sed -i 's/^Session=omarchy$/Session=hyprland/' /etc/sddm.conf.d/autologin.conf
+        fi
+
+        echo
+        echo "Listo. Reinicia para probar: Plymouth -> hyprlock (contrasena) -> escritorio."
+        echo "Si algo falla: Ctrl+Alt+F2, login, 'sudo systemctl start sddm'."
+        ;;
+    *)
+        echo "Saltado el arranque sin display manager. Para hacerlo luego:"
+        echo "$BOOT_STEPS"
         ;;
 esac
 

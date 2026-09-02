@@ -154,6 +154,13 @@ else
 fi
 
 aether --generate "$image" --extract-mode "$mode" --no-apply --output "$CURRENT_DIR"
+
+# aether escribe un vencord.theme.css que no usamos (Vencord carga
+# vencord-quickcss.css, generado por chocomazapan-apply-theme) y que trae un
+# @import a una URL externa ajena. Se descarta de las dos rutas donde aether
+# lo deja para que no quede rastro.
+rm -f "$CURRENT_DIR/vencord.theme.css" "$HOME/.config/aether/theme/vencord.theme.css"
+
 sync_desktop "$image" "$mode"
 
 chocomazapan-notification-send "Tema aplicado" "$(basename "$image") · $mode" >/dev/null 2>&1 || true
