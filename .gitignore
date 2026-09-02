@@ -13,4 +13,4 @@ theming/current/
 waybar/.clock-alt
 
 # Fondo generado del tema SDDM (imagen personal, la genera chocomazapan-sddm-bg).
-sddm/themes/chocomazapan/backgrounds/current.jpg
+sddm/themes/chocomazapan/backgrounds/current*.jpg

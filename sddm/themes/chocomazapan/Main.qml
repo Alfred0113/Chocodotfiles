@@ -3,11 +3,18 @@
 // Solo QtQuick base (sirve tanto en el greeter Qt5 como en el Qt6). Usa los
 // objetos de contexto del greeter: sddm, userModel, sessionModel, config.
 import QtQuick 2.15
+import QtQuick.Window 2.15
 
 Item {
     id: root
     width: 1920
     height: 1080
+
+    // Indice de monitor (0,1,2,...) segun su posicion horizontal, para elegir
+    // un fondo distinto por pantalla (current-<idx>.jpg).
+    readonly property int screenIndex:
+        Math.max(0, Math.round(Screen.virtualX / Math.max(Screen.width, 1)))
+    readonly property int bgVariants: 4
 
     // --- Ajustes desde theme.conf (con defaults catppuccin) ----------------
     readonly property color cText:   config.textColor   || "#cdd6f4"
@@ -32,11 +39,15 @@ Item {
     Image {
         id: bg
         anchors.fill: parent
-        source: config.background ? Qt.resolvedUrl(config.background) : ""
+        // Un fondo por monitor: backgrounds/current-<idx>.jpg. Si no existe,
+        // cae a backgrounds/current.jpg (config.background de theme.conf).
+        source: Qt.resolvedUrl("backgrounds/current-" + (root.screenIndex % root.bgVariants) + ".jpg")
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: false
         visible: status === Image.Ready
+        onStatusChanged: if (status === Image.Error && config.background)
+                             source = Qt.resolvedUrl(config.background)
     }
 
     // --- Reloj + fecha ---------------------------------------------------

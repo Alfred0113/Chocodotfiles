@@ -1,18 +1,20 @@
 #!/bin/bash
-# meta:summary=Pick a random wallpaper, blur+darken it, put it under the SDDM theme
+# meta:summary=Pick random wallpapers, blur+darken them, put them under the SDDM theme
 # meta:group=system
 #
 # Corre como el usuario 'alfredo' (via chocomazapan-sddm-bg.service, Before=sddm)
-# y deja el resultado en /usr/share/sddm/themes/chocomazapan/backgrounds/current.jpg
-# (ese dir lo hace escribible install.sh con chown). El tema QML solo muestra la
-# imagen -- el desenfoque/oscurecido ya viene horneado (equivale a los
-# blur_passes=2 / brightness=0.75 de hyprlock.conf).
+# y deja N variantes en /usr/share/sddm/themes/chocomazapan/backgrounds/
+# (current-0.jpg .. current-3.jpg + current.jpg = fallback). El tema QML elige
+# una distinta por monitor. Ese dir lo hace escribible install.sh con chown.
+# El desenfoque/oscurecido viene horneado (equivale a los blur_passes=2 /
+# brightness=0.75 de hyprlock.conf).
 
 set -u
 
 BG_DIR="$HOME/Imágenes/Wallpapers"
 CACHE_FILE="$HOME/dotfiles/theming/current/sddm-bg-cache"
-OUT="/usr/share/sddm/themes/chocomazapan/backgrounds/current.jpg"
+OUT_DIR="/usr/share/sddm/themes/chocomazapan/backgrounds"
+VARIANTS=4
 MIN_W=1920
 MIN_H=1080
 
@@ -37,22 +39,31 @@ rebuild_cache() {
 current_sig="$(dir_signature)"
 [ -f "$CACHE_FILE" ] && [ "$current_sig" = "$(cat "$CACHE_FILE.sig" 2>/dev/null)" ] || rebuild_cache
 
+# Lista barajada de candidatos (distintos mientras alcancen; luego cicla).
 if [ -s "$CACHE_FILE" ]; then
-    src="$(shuf -n1 "$CACHE_FILE")"
+    mapfile -t pool < <(shuf "$CACHE_FILE")
 else
-    src="$(find_imgs 2>/dev/null | head -n1)"
+    mapfile -t pool < <(find_imgs 2>/dev/null)
 fi
-[ -n "${src:-}" ] || { echo "chocomazapan-sddm-bg: no hay wallpapers en $BG_DIR" >&2; exit 0; }
+[ "${#pool[@]}" -gt 0 ] || { echo "chocomazapan-sddm-bg: no hay wallpapers en $BG_DIR" >&2; exit 0; }
 
-[ -w "$(dirname "$OUT")" ] || { echo "chocomazapan-sddm-bg: $(dirname "$OUT") no escribible (corre install.sh)" >&2; exit 0; }
+[ -w "$OUT_DIR" ] || { echo "chocomazapan-sddm-bg: $OUT_DIR no escribible (corre install.sh)" >&2; exit 0; }
 
-tmp="$(mktemp --suffix=.jpg)"
-if magick "$src" -auto-orient -resize 1920x1080^ -gravity center -extent 1920x1080 \
-       -blur 0x8 -modulate 72 -quality 88 "$tmp" 2>/dev/null; then
-    mv -f "$tmp" "$OUT"
-    chmod 644 "$OUT"
-else
-    rm -f "$tmp"
-    echo "chocomazapan-sddm-bg: magick fallo con $src" >&2
-    exit 1
-fi
+process() {  # $1 = origen, $2 = destino
+    local tmp; tmp="$(mktemp --suffix=.jpg)"
+    if magick "$1" -auto-orient -resize 1920x1080^ -gravity center -extent 1920x1080 \
+           -blur 0x8 -modulate 72 -quality 88 "$tmp" 2>/dev/null; then
+        mv -f "$tmp" "$2"; chmod 644 "$2"
+    else
+        rm -f "$tmp"; echo "chocomazapan-sddm-bg: magick fallo con $1" >&2; return 1
+    fi
+}
+
+rc=0
+for i in $(seq 0 $((VARIANTS - 1))); do
+    src="${pool[$((i % ${#pool[@]}))]}"
+    process "$src" "$OUT_DIR/current-$i.jpg" || rc=1
+done
+# current.jpg = fallback (lo usa el tema si no puede resolver el indice de monitor)
+cp -f "$OUT_DIR/current-0.jpg" "$OUT_DIR/current.jpg" 2>/dev/null || true
+exit $rc
