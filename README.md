@@ -44,6 +44,7 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 - `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
 - `sddm/` → `themes/chocomazapan/` (tema QML del login, imita hyprlock), `conf.d/chocomazapan.conf` y `hyprland.lua` (config del greeter Wayland — teclado latam); `install.sh` (paso root) los copia a `/usr/share/sddm/` y `/etc/sddm.conf.d/`
 - `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `chocomazapan-sddm-bg.service` (fondo aleatorio del login), `plymouth-quit.service.d/override.conf` (`--retain-splash`) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
+  - `system/hibernate/` → config de hibernación **específica del desktop** (RTX 3080 `nvidia-open` 610 + WiFi MT7921); `install.sh` la aplica solo si hay NVIDIA. Ver su [README](system/hibernate/README.md). La T14 no la usa.
 - `nautilus/` → extensiones de `nautilus-python` enlazadas en `~/.local/share/nautilus-python/extensions/`. Por ahora `transcode.py` (menú contextual "Transcode" → `chocomazapan-transcode`)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
@@ -82,7 +83,7 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 
 Además de lo de siempre (Capture, Toggle, Setup, Style, System), dos añadidos que dependen del sistema, no del repo:
 
-- **System → Hibernar** (`systemctl hibernate`) — **solo aparece en laptop** (`chocomazapan-is-laptop`). Requiere swap ≥ RAM y `resume=`/`resume_offset=` en la línea de kernel (CachyOS lo configura al instalar). Se oculta en el desktop porque el driver `nvidia-open` 610 rompe el resume desde hibernación (cascada de `Xid 13`, bug upstream sin fix a sep-2026); ahí se usa Suspender. En la T14 (sin NVIDIA) funciona.
+- **System → Hibernar** (`systemctl hibernate`) — aparece si el kernel ofrece hibernación (`grep -qw disk /sys/power/state`: swap + `resume=` en la cmdline, que CachyOS pone al instalar con swap). En el **desktop** necesita además la config de [`system/hibernate/`](system/hibernate/) (NVIDIA `nvidia-open` 610 + WiFi MT7921 rompían el resume; `install.sh` la aplica si detecta NVIDIA). En la **T14** (AMD) funciona sola.
 - **Setup → Crear snapshot** (`chocomazapan-snapshot-create`) — snapshot de snapper de `/` bajo demanda vía `pkexec`, marcado `important=yes` para que no lo borre pronto la limpieza. Un "punto de restauración" manual antes de hacer cosas locas; se ve en el menú de arranque de Limine. Necesita `snapper` + `limine-snapper-sync` (los trae CachyOS).
 
 ## Laptop vs desktop
