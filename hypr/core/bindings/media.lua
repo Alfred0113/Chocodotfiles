@@ -13,6 +13,7 @@ o.bind("XF86KbdLightOnOff", "Keyboard backlight cycle", "chocomazapan-brightness
 o.bind("XF86TouchpadToggle", "Toggle touchpad", "chocomazapan-toggle-touchpad", { locked = true })
 o.bind("XF86TouchpadOn", "Enable touchpad", "chocomazapan-toggle-touchpad on", { locked = true })
 o.bind("XF86TouchpadOff", "Disable touchpad", "chocomazapan-toggle-touchpad off", { locked = true })
+o.bind("XF86RFKill", "Toggle airplane mode", "chocomazapan-toggle-airplane", { locked = true })
 
 -- Precise volume and brightness controls.
 o.bind("ALT + XF86AudioRaiseVolume", "Volume up precise", "chocomazapan-swayosd-client --output-volume +1", { locked = true, repeating = true })

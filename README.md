@@ -1,6 +1,6 @@
 # dotfiles
 
-Configuración personal de escritorio: Hyprland + herramientas asociadas.
+Configuración personal de escritorio: Hyprland + herramientas asociadas. Máquina principal un desktop; la laptop objetivo es una **ThinkPad T14 Gen 5 AMD**.
 
 ## Uso
 
@@ -79,8 +79,23 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 No hay dos ramas de config: es una sola, pensada para desktop, con lo de laptop en tres estados.
 
 - **`bin/chocomazapan-is-laptop`** — exit 0 si hay batería de sistema (`/sys/class/power_supply/BAT*`, ignorando periféricos) o `hostnamectl chassis` es portátil. Lo usan `install.sh` (timer de batería) y `o.is_laptop()` en la config Lua de Hyprland.
-- **Degrada solo**: módulo `battery` de Waybar (se oculta sin batería), teclas de brillo (`XF86MonBrightness*`/`XF86Kbd*`), `XF86TouchpadToggle`, `chocomazapan-battery-status` (dice "Sin batería" en vez de basura).
+- **Degrada solo**: módulo `battery` de Waybar (se oculta sin batería), `chocomazapan-battery-status` (dice "Sin batería" en vez de basura).
 - **Pendiente Fase 8** (scripts sin vendorizar): binds de lid switch / pantalla interna (`hypr/core/bindings/utilities.lua`), `chocomazapan-powerprofiles-init` y `chocomazapan-hyprland-monitor-watch` (`autostart.lua`) — al descomentarlos, envolver en `if o.is_laptop() then`.
+
+### Teclas de función (F-row de la ThinkPad)
+
+Todo esto ya está bindeado en `hypr/core/bindings/media.lua` (los scripts usan `brightnessctl` vía logind — sin udev ni root — y apuntan a `amdgpu_bl*` / `platform::kbd_backlight`, que es lo de la T14 G5 AMD):
+
+| Tecla | Acción |
+|---|---|
+| F1 / F2 / F3 | mute / volumen − / volumen + (`XF86Audio*`, OSD por SwayOSD) |
+| F4 | mute de micrófono (+ LED `platform::micmute`) |
+| F5 / F6 | brillo − / + (Shift = mín/máx, Alt = pasos de 1%) |
+| F8 | modo avión (`chocomazapan-toggle-airplane`, bloquea/desbloquea rfkill) |
+| Fn+Space | luz del teclado — la maneja el kernel (`thinkpad_acpi`) directo, sin OSD |
+| media (play/prev/next) | vía `playerctl` |
+
+`install.sh` instala `brightnessctl` y `playerctl` y activa `swayosd-server.service` (sin él las teclas de volumen/brillo no hacen nada). **F7** (`XF86Display`, cambiar a proyector) queda sin bindear — es parte del manejo de monitores de la Fase 8.
 
 ## Windows VM
 
