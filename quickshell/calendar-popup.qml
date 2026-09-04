@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
-import QtQuick.Shapes
 
 ShellRoot {
   id: root
@@ -12,15 +11,15 @@ ShellRoot {
   property color foreground: "#cacccc"
 
   property int width_: 300
-  property int rBottom: 14
-  property int rTop: 28
-  property int headerH: 44
+  property int radius_: 14
+  property int margin_: 16
+  property int headerRowH: 30
   property int weekdayH: 26
   property int cellH: 34
   property int rows: 6
   property int bodyH: weekdayH + cellH * rows + 10
-  property int totalH: headerH + bodyH
-  property int totalW: width_ + 2 * rTop
+  property int totalH: margin_ * 2 + headerRowH + bodyH
+  property int totalW: width_ + 2 * margin_
 
   property var displayed: new Date()
   property var today: new Date()
@@ -97,78 +96,20 @@ ShellRoot {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 
-    Shape {
+    Rectangle {
       id: bodyShape
       anchors.fill: parent
-      antialiasing: true
-      preferredRendererType: Shape.CurveRenderer
-
-      ShapePath {
-        id: outline
-        // Misma opacidad que la barra (waybar/style.css: alpha(@background,
-        // 0.3)), sin contorno — para que se sienta literal como parte de
-        // ella, no como un popup aparte con su propio borde.
-        fillColor: root.withAlpha(root.background, 0.3)
-        strokeColor: "transparent"
-        strokeWidth: 0
-
-        readonly property real rt: root.rTop
-        readonly property real rb: root.rBottom
-        readonly property real w: root.totalW
-        readonly property real h: root.totalH
-
-        // Arriba-izquierda, pegado al borde inferior de la barra.
-        startX: 0
-        startY: 0
-
-        // Borde superior: toca la barra en todo el ancho total.
-        PathLine { x: outline.w; y: 0 }
-        // Filete cóncavo derecho: escurre hacia afuera y se mete al cuerpo.
-        PathArc {
-          x: outline.w - outline.rt
-          y: outline.rt
-          radiusX: outline.rt
-          radiusY: outline.rt
-          direction: PathArc.Counterclockwise
-        }
-        // Borde derecho del cuerpo.
-        PathLine { x: outline.w - outline.rt; y: outline.h - outline.rb }
-        // Esquina abajo-derecha, convexa normal.
-        PathArc {
-          x: outline.w - outline.rt - outline.rb
-          y: outline.h
-          radiusX: outline.rb
-          radiusY: outline.rb
-          direction: PathArc.Clockwise
-        }
-        // Borde de abajo.
-        PathLine { x: outline.rt + outline.rb; y: outline.h }
-        // Esquina abajo-izquierda, convexa normal.
-        PathArc {
-          x: outline.rt
-          y: outline.h - outline.rb
-          radiusX: outline.rb
-          radiusY: outline.rb
-          direction: PathArc.Clockwise
-        }
-        // Borde izquierdo del cuerpo, subiendo.
-        PathLine { x: outline.rt; y: outline.rt }
-        // Filete cóncavo izquierdo: escurre hacia afuera y regresa al inicio.
-        PathArc {
-          x: 0
-          y: 0
-          radiusX: outline.rt
-          radiusY: outline.rt
-          direction: PathArc.Counterclockwise
-        }
-      }
+      radius: root.radius_
+      // Misma opacidad que la barra (waybar/style.css: alpha(@background,
+      // 0.3)), sin contorno — para que se sienta literal como parte de
+      // ella, no como un popup aparte con su propio borde.
+      color: root.withAlpha(root.background, 0.3)
+      border.width: 0
     }
 
     Column {
       anchors.fill: parent
-      anchors.leftMargin: root.rTop
-      anchors.rightMargin: root.rTop
-      anchors.topMargin: root.headerH - 30
+      anchors.margins: root.margin_
       spacing: 0
 
       Item {
