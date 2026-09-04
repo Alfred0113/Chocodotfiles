@@ -22,6 +22,11 @@ hl.layer_rule({ match = { namespace = "waybar" }, blur = true, ignore_alpha = 0.
 -- the calendar popup (should look like it's literally part of the bar).
 hl.layer_rule({ match = { namespace = "walker" }, blur = true, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = "notifications" }, blur = true, ignore_alpha = 0.2 })
+
+-- El core (core/apps/walker.lua) apagaba las animaciones de Walker con
+-- no_anim = true; ahí quedó comentado (no_anim no se puede revertir con
+-- una regla posterior). Aquí se define el estilo de Walker.
+hl.layer_rule({ match = { namespace = "walker" }, animation = "slide" })
 hl.layer_rule({ match = { namespace = "chocomazapan-calendar" }, blur = true, ignore_alpha = 0.2 })
 
 -- Reduce top gap to visually match waybar's margin-top/margin-bottom.
@@ -56,13 +61,31 @@ hl.config({
 --   },
 -- })
 
--- https://wiki.hypr.land/Configuring/Basics/Variables/#animations
--- hl.config({
---   animations = {
---     -- Disable all animations.
---     enabled = false,
---   },
--- })
+-- https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
+-- Todo con estilo "slide" y curva easeOutExpo (cmzExpo), rápido (~200 ms).
+-- Reactiva el slide entre workspaces (el core lo tiene apagado) y deja el
+-- rebote (cmzBounce) solo en layersIn -> Walker/mako/swayosd al aparecer.
+-- Redefinir un leaf/curva sobrescribe el valor del core.
+hl.curve("cmzExpo", { type = "bezier", points = { { 0.16, 1 }, { 0.3, 1 } } })
+hl.curve("cmzInOut", { type = "bezier", points = { { 0.65, 0 }, { 0.35, 1 } } })
+-- Overshoot: pasa de largo (~y=1.6) y regresa a su sitio -> efecto rebote.
+hl.curve("cmzBounce", { type = "bezier", points = { { 0.22, 1.6 }, { 0.5, 1 } } })
+
+-- OJO: en Hyprland "speed" = DURACIÓN en decisegundos. Número más BAJO =
+-- animación más rápida.
+hl.animation({ leaf = "windows", enabled = true, speed = 2.2, bezier = "cmzExpo", style = "slide" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.2, bezier = "cmzExpo", style = "slide" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.85, bezier = "cmzExpo", style = "slide" })
+hl.animation({ leaf = "windowsMove", enabled = true, speed = 2.4, bezier = "cmzExpo" })
+hl.animation({ leaf = "border", enabled = true, speed = 2.9, bezier = "cmzExpo" })
+hl.animation({ leaf = "fade", enabled = true, speed = 2.65, bezier = "cmzExpo" })
+-- layersIn con rebote para que Walker "rebote" al aparecer (también afecta
+-- a mako/swayosd al aparecer; el resto de capas y la salida van sin rebote).
+hl.animation({ leaf = "layers", enabled = true, speed = 2.3, bezier = "cmzExpo", style = "slide" })
+hl.animation({ leaf = "layersIn", enabled = true, speed = 2.9, bezier = "cmzBounce", style = "slide" })
+hl.animation({ leaf = "layersOut", enabled = true, speed = 2.1, bezier = "cmzExpo", style = "slide" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 2.2, bezier = "cmzInOut", style = "slide" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.3, bezier = "cmzExpo", style = "slidevert" })
 
 -- https://wiki.hypr.land/Configuring/Basics/Variables/#layout
 -- hl.config({

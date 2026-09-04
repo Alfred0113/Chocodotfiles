@@ -1,2 +1,5 @@
 -- Application-specific animation.
-hl.layer_rule({ match = { namespace = "walker" }, no_anim = true })
+-- no_anim se dejó apagado: Hyprland no permite revertir "noanim" con una
+-- regla "animation" posterior, así que el control de la animación de Walker
+-- vive en hypr/looknfeel.lua (layer_rule con animation = "slide").
+-- hl.layer_rule({ match = { namespace = "walker" }, no_anim = true })
