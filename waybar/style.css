@@ -16,17 +16,33 @@ window#waybar {
   background-color: transparent;
 }
 
+/* Cápsulas separadas por grupo en vez de una sola barra continua. */
 window#waybar > box {
-  border-radius: 14px;
-  background-color: alpha(@background, 0.3);
+  background-color: transparent;
 }
 
-.modules-left {
-  margin-left: 8px;
+.modules-center,
+.modules-right {
+  background-color: alpha(@background, 0.3);
+  border-radius: 14px;
+  padding: 0 4px;
 }
 
 .modules-right {
   margin-right: 8px;
+}
+
+/* modules-left son 2 grupos independientes (menu+workspaces, cava+mpris),
+   cada uno con su propia cápsula, en vez de compartir una sola. */
+#menu-workspaces,
+#cava-mpris {
+  background-color: alpha(@background, 0.3);
+  border-radius: 14px;
+  padding: 0 4px;
+}
+
+#menu-workspaces {
+  margin: 0 4px 0 8px;
 }
 
 #workspaces button {
@@ -34,10 +50,19 @@ window#waybar > box {
   padding: 0 6px;
   margin: 0 1.5px;
   min-width: 9px;
+  transition: color 200ms ease;
 }
 
 #workspaces button.empty {
   opacity: 0.5;
+}
+
+#workspaces button.active {
+  color: @accent;
+}
+
+#workspaces button:hover {
+  color: alpha(@accent, 0.7);
 }
 
 #cpu,
@@ -48,6 +73,31 @@ window#waybar > box {
 #custom-update {
   min-width: 12px;
   margin: 0 7.5px;
+}
+
+/* Un color de acento distinto por módulo, en vez de todo monocromático. */
+#cpu { color: @mod-blue; }
+#battery { color: @mod-green; }
+#pulseaudio { color: @mod-magenta; }
+#network { color: @mod-cyan; }
+#bluetooth { color: @mod-blue; }
+#custom-calendar { color: @mod-orange; }
+#custom-clock, #clock { color: @mod-yellow; }
+#custom-weather { color: @mod-cyan; }
+#custom-voxtype { color: @mod-red; }
+
+/* Pill de fondo al pasar el mouse sobre cualquier módulo con icono. */
+#cpu, #battery, #pulseaudio, #network, #bluetooth,
+#custom-chocomazapan, #custom-calendar, #custom-clock, #clock,
+#custom-weather, #custom-voxtype {
+  border-radius: 8px;
+  transition: background-color 200ms ease;
+}
+
+#cpu:hover, #battery:hover, #pulseaudio:hover, #network:hover, #bluetooth:hover,
+#custom-chocomazapan:hover, #custom-calendar:hover, #custom-clock:hover, #clock:hover,
+#custom-weather:hover, #custom-voxtype:hover {
+  background-color: alpha(@foreground, 0.12);
 }
 
 #tray {
@@ -204,4 +254,9 @@ tooltip {
   letter-spacing: -1px;
   padding: 0 8px;
   opacity: 0.8;
+}
+
+#mpris {
+  color: @accent;
+  margin: 0 8px 0 2px;
 }

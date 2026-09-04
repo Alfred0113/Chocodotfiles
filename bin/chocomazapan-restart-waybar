@@ -3,5 +3,18 @@
 # meta:summary=Restart Waybar
 # meta:examples=chocomazapan-restart-waybar
 
+# TERM primero: waybar limpia los procesos hijos de sus módulos "continuos"
+# (cava.sh, etc.) en su apagado normal. Un -9 directo se los salta y los
+# deja huérfanos, acumulándose en cada reinicio (visto con cava.sh).
+pkill -x waybar
+for _ in $(seq 1 20); do
+  pgrep -x waybar >/dev/null || break
+  sleep 0.1
+done
 pkill -9 -x waybar
+
+# Red de seguridad por si algún módulo quedó huérfano de todos modos.
+pkill -9 -f 'waybar/scripts/cava.sh' 2>/dev/null
+pkill -9 -x cava 2>/dev/null
+
 setsid uwsm-app -- waybar >/dev/null 2>&1 &

@@ -2,3 +2,10 @@
 @define-color foreground {{foreground}};
 @define-color accent {{accent}};
 @define-color alert {{color1}};
+@define-color mod-red {{bright_red}};
+@define-color mod-green {{bright_green}};
+@define-color mod-yellow {{bright_yellow}};
+@define-color mod-blue {{bright_blue}};
+@define-color mod-magenta {{bright_magenta}};
+@define-color mod-cyan {{bright_cyan}};
+@define-color mod-orange {{orange}};
