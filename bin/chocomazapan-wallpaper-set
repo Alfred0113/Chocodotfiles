@@ -34,8 +34,16 @@ pick_random_image() {
     list_images | shuf -n1
 }
 
-# Aplica el wallpaper real (awww) y sincroniza el resto del setup a partir
-# de lo que ya haya en theming/current/colors.toml.
+WALLPAPER_LOG="$CURRENT_DIR/wallpaper-set.log"
+
+# Manda la imagen a awww y NO regresa hasta CONFIRMAR contra `awww query` que
+# todos los outputs la están pintando de verdad.
+#
+# El bug viejo: `awww img` con todos los errores silenciados + ventana de
+# reintento de 1.5 s. En el arranque de sesión (dos monitores, compositor
+# todavía levantando outputs, resto del autostart peleando por CPU) el `img`
+# fallaba sin dejar rastro y el script seguía igual: symlink + apply-theme se
+# aplicaban, dejando el fondo viejo en pantalla con el tema nuevo encima.
 #
 # Se usa awww (sucesor de swww) en vez de swaybg: swaybg tiene un bug real
 # confirmado en este setup con dos monitores (mata+relanza el proceso en
@@ -43,6 +51,45 @@ pick_random_image() {
 # nueva — mismo PID dueño de ambas capas, pero una se queda con pixeles
 # viejos). awww corre como daemon persistente y solo recibe un comando
 # nuevo por cambio, sin ese problema.
+apply_wallpaper() {
+    local image; image="$(readlink -f "$1")"
+    local deadline=$((SECONDS + 20))
+    local expected got last_err=""
+
+    # 1. Esperar a que el daemon responda Y ya tenga registrados todos los
+    #    outputs que Hyprland reporta (si no, `awww img` pinta en el vacío).
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        expected="$(hyprctl monitors 2>/dev/null | grep -cE '^Monitor ')" || true
+        [ "${expected:-0}" -ge 1 ] 2>/dev/null || expected=1
+        got="$(awww query 2>/dev/null | grep -c ':')" || true
+        [ "${got:-0}" -ge "${expected:-1}" ] && break
+        sleep 0.2
+    done
+
+    # 2. Mandar la imagen y confirmar contra `awww query` que TODOS los
+    #    outputs reportan la ruta nueva. Reintentar hasta el deadline.
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        last_err="$(awww img "$image" --resize crop 2>&1 >/dev/null)" || true
+        got="$(awww query 2>/dev/null | grep -F "$image" | grep -c 'currently displaying')" || true
+        if [ "${got:-0}" -ge "${expected:-1}" ]; then
+            # NVIDIA a veces deja el page-flip pegado: el daemon ya tiene la
+            # imagen nueva pero el compositor no repinta (mismo síntoma que
+            # hyprlock transparente tras hibernar). Forzar el reload.
+            hyprctl dispatch forcerendererreload >/dev/null 2>&1 || true
+            return 0
+        fi
+        sleep 0.4
+    done
+
+    # 3. Falló de verdad: dejar rastro en vez de esconderlo.
+    printf '%s  FALLO awww img: outputs=%s/%s  err=%q\n' \
+        "$(date -Is)" "${got:-0}" "${expected:-1}" "$last_err" >>"$WALLPAPER_LOG"
+    chocomazapan-notification-send "Wallpaper no aplicado" \
+        "awww img falló (${got:-0}/${expected:-1} outputs) — ver $WALLPAPER_LOG" \
+        >/dev/null 2>&1 || true
+    return 1
+}
+
 sync_desktop() {
     local image="$1" mode="$2"
 
@@ -51,23 +98,7 @@ sync_desktop() {
         disown
     }
 
-    # Espera a que el daemon esté realmente listo (socket abierto y outputs
-    # ya registrados) antes de mandarle la imagen. En el arranque de sesión
-    # el compositor todavía está levantando los monitores y arrancando el
-    # resto del autostart, así que el "sleep 0.3" fijo de antes casi nunca
-    # alcanzaba: `awww img` fallaba en silencio (2>&1 >/dev/null) y el
-    # wallpaper se quedaba igual aunque los colores del tema sí se aplicaran.
-    for _ in $(seq 1 100); do
-        awww query >/dev/null 2>&1 && break
-        sleep 0.1
-    done
-
-    # Reintenta el img por si el primer intento cae justo en la ventana en
-    # la que el daemon responde query pero todavía no pinta.
-    for _ in 1 2 3 4 5; do
-        awww img "$image" --resize crop >/dev/null 2>&1 && break
-        sleep 0.3
-    done
+    apply_wallpaper "$image" || true
 
     ln -sfn "$image" "$CURRENT_DIR/wallpaper"
     echo "$mode" >"$MODE_STATE_FILE"
