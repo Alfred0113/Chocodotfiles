@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# meta:summary=Reboot straight into the Windows install on the other disk (one-shot UEFI BootNext)
+
+# Find the firmware boot entry for the Windows Boot Manager (number can shift,
+# so match by name instead of hardcoding BootXXXX).
+winnum=$(efibootmgr | awk 'match($0, /Windows Boot Manager/) {
+  t = $1; gsub(/^Boot|\*$/, "", t); print t; exit }')
+
+if [[ -z $winnum ]]; then
+  notify-send -u critical "Reboot to Windows" "No 'Windows Boot Manager' UEFI entry found."
+  exit 1
+fi
+
+# One-shot: firmware boots Windows next time, then reverts to the normal order.
+sudo efibootmgr --bootnext "$winnum" >/dev/null || {
+  notify-send -u critical "Reboot to Windows" "Could not set BootNext."
+  exit 1
+}
+
+# Schedule the reboot to happen after closing windows (detached from terminal)
+nohup bash -c "sleep 2 && systemctl reboot --no-wall" >/dev/null 2>&1 &
+
+# Now close all windows
+chocomazapan-hyprland-window-close-all
+sleep 1 # Allow apps like Chrome to shutdown correctly

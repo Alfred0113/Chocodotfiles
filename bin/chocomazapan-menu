@@ -111,6 +111,7 @@ show_system_menu() {
   items="$items
 󰍃  Logout
 󰜉  Restart
+󰖳  Reboot to Windows
 󰐥  Shutdown"
 
   case $(menu "System" "$items") in
@@ -118,6 +119,7 @@ show_system_menu() {
   *Suspend*) systemctl suspend ;;
   *Hibernar*) systemctl hibernate ;;
   *Logout*) chocomazapan-system-logout ;;
+  *"Reboot to Windows"*) chocomazapan-system-reboot-windows ;;
   *Restart*) chocomazapan-system-reboot ;;
   *Shutdown*) chocomazapan-system-shutdown ;;
   *) back_to show_main_menu ;;
