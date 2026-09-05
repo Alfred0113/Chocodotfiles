@@ -52,10 +52,14 @@ fi
 
 next_sink_volume_icon="sink-volume-${icon_state}-symbolic"
 
-if [[ $next_sink_name != $current_sink_name ]]; then
-  next_sink_wpid=$(echo "$next_sink" | jq -r '.properties."object.id"')
-  wpctl set-default "$next_sink_wpid"
-fi
+next_sink_wpid=$(echo "$next_sink" | jq -r '.properties."object.id"')
+wpctl set-default "$next_sink_wpid"
+
+# Force every stream onto the rotation target, even ones a per-app menu had
+# routed elsewhere and even if the default sink itself didn't need to change.
+while read -r input_index; do
+  pactl move-sink-input "$input_index" "$next_sink_name"
+done < <(pactl -f json list sink-inputs | jq -r '.[].index')
 
 chocomazapan-swayosd-client \
   --custom-message "$next_sink_description" \
