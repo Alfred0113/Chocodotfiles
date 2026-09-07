@@ -132,7 +132,12 @@ sync_desktop() {
     fi
 
     "$HOME/.dotfiles/bin/chocomazapan-theme-set-browser" >/dev/null 2>&1 || true
-    "$HOME/.dotfiles/bin/chocomazapan-icon-theme-sync" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-vscode-sync" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-gtk-theme-sync" >/dev/null 2>&1 || true
+    # Nota: Nautilus/Evince (libadwaita) solo leen ~/.config/gtk-4.0/gtk.css al
+    # arrancar y no lo recargan en caliente. Una ventana ya abierta se queda con
+    # el acento viejo hasta que la cierres y reabras — a propósito no se fuerza
+    # el reinicio aquí (cerrar la ventana del usuario molesta más de lo que ayuda).
     "$HOME/.dotfiles/bin/chocomazapan-rgb-sync" >/dev/null 2>&1 || true
     "$HOME/.dotfiles/bin/chocomazapan-obsidian-sync" >/dev/null 2>&1 || true
     "$HOME/.dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true

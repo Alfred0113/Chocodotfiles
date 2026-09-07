@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""Sincroniza el tema GTK/iconos de Ubuntu (Yaru) con el acento del wallpaper.
+
+Yaru trae 9 variantes de color fijas (no acepta un hex arbitrario). Se elige la
+mas cercana al acento actual de theming/current/colors.toml y se aplica a:
+
+  - gsettings org.gnome.desktop.interface  gtk-theme / icon-theme / color-scheme
+    / font-name  (para apps que hablan con dconf)
+  - ~/.config/gtk-{3,4}.0/settings.ini    (para apps GTK sobre wlroots que leen
+    el archivo directo, sin daemon de XSettings)
+  - ~/.config/gtk-4.0/gtk.css -> gtk.css del tema Yaru  (libadwaita: Nautilus,
+    Evince... ignoran gtk-theme y solo cargan este archivo)
+
+La variante se elige por **tono (hue)**, no por distancia RGB: el acento del
+wallpaper suele venir desaturado y la distancia RGB cruda lo mandaba a un color
+equivocado (p.ej. un periwinkle gris #98a3c6 -> "purple" en vez de "blue"). Los
+hex de referencia son los acentos reales de Yaru (dark), sacados del gresource
+de cada tema. Si el acento es casi gris (saturacion muy baja) cae a "sage", la
+variante mas neutra.
+
+Reemplaza al viejo chocomazapan-icon-theme-sync (que solo tocaba el tema de
+iconos y dejaba las ventanas con Adwaita de fabrica).
+"""
+
+import colorsys
+import os
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+COLORS_FILE = Path.home() / ".dotfiles" / "theming" / "current" / "colors.toml"
+THEMES_DIR = Path("/usr/share/themes")
+UI_FONT = "Ubuntu 11"
+
+# Acento real (variante -dark) de cada tema Yaru instalado, extraido del
+# gresource: @define-color accent_bg_color de /com/ubuntu/themes/Yaru-<c>-dark/.
+YARU_ACCENTS = {
+    "blue": "#006fe2",
+    "purple": "#7460d4",
+    "magenta": "#af48af",
+    "prussiangreen": "#307d80",
+    "sage": "#637769",
+    "wartybrown": "#8d6c49",
+    "yellow": "#a26400",
+    "olive": "#498001",
+    "red": "#d62f4d",
+}
+
+# Debajo de esta saturacion el tono no significa nada -> gris -> "sage".
+GREY_SAT = 0.10
+# Peso del desempate por luminosidad (el tono manda; esto solo rompe empates).
+LIGHT_WEIGHT = 0.08
+
+
+def hex_to_hsl(hex_str: str) -> tuple[float, float, float]:
+    """(hue 0-360, saturation 0-1, lightness 0-1)."""
+    h = hex_str.lstrip("#")
+    r, g, b = (int(h[i : i + 2], 16) / 255 for i in (0, 2, 4))
+    hue, light, sat = colorsys.rgb_to_hls(r, g, b)
+    return hue * 360.0, sat, light
+
+
+_YARU_HSL = {name: hex_to_hsl(hx) for name, hx in YARU_ACCENTS.items()}
+
+
+def nearest_yaru(accent_hex: str) -> str:
+    """Variante Yaru cuyo acento matchea mejor el hex dado, por tono."""
+    th, ts, tl = hex_to_hsl(accent_hex)
+    if ts < GREY_SAT:
+        return "sage"
+
+    def score(item: tuple[str, tuple[float, float, float]]) -> float:
+        _, (h, _s, l) = item
+        dh = abs(th - h)
+        dh = min(dh, 360.0 - dh) / 180.0  # 0..1
+        return dh + LIGHT_WEIGHT * abs(tl - l)
+
+    return min(_YARU_HSL.items(), key=score)[0]
+
+
+def gset(key: str, value: str) -> None:
+    subprocess.run(
+        ["gsettings", "set", "org.gnome.desktop.interface", key, value],
+        check=False,
+    )
+
+
+def write_settings_ini(path: Path, gtk_theme: str, icon_theme: str, dark: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "[Settings]\n"
+        f"gtk-theme-name={gtk_theme}\n"
+        f"gtk-icon-theme-name={icon_theme}\n"
+        f"gtk-font-name={UI_FONT}\n"
+        f"gtk-application-prefer-dark-theme={int(dark)}\n"
+        "gtk-cursor-theme-name=Yaru\n"
+    )
+
+
+def main() -> int:
+    if not COLORS_FILE.exists():
+        print(f"No existe {COLORS_FILE}. Corre chocomazapan-wallpaper-set primero.", file=sys.stderr)
+        return 1
+
+    colors = tomllib.loads(COLORS_FILE.read_text())
+    dark = str(colors.get("mode", "dark")).lower() != "light"
+    closest = nearest_yaru(colors["accent"])
+
+    gtk_theme = f"Yaru-{closest}-dark" if dark else f"Yaru-{closest}"
+    icon_theme = f"Yaru-{closest}"
+
+    theme_path = THEMES_DIR / gtk_theme
+    if not theme_path.is_dir():
+        print(
+            f"Falta el tema '{gtk_theme}' en {THEMES_DIR}. "
+            "Instala: paru -S yaru-gtk-theme yaru-icon-theme",
+            file=sys.stderr,
+        )
+        return 1
+
+    # dconf (apps que lo consultan directamente)
+    gset("gtk-theme", gtk_theme)
+    gset("icon-theme", icon_theme)
+    gset("color-scheme", "prefer-dark" if dark else "prefer-light")
+    gset("font-name", UI_FONT)
+
+    # settings.ini (apps GTK sobre wlroots sin daemon de XSettings)
+    for sub in ("gtk-3.0", "gtk-4.0"):
+        write_settings_ini(CONFIG / sub / "settings.ini", gtk_theme, icon_theme, dark)
+
+    # libadwaita: solo carga ~/.config/gtk-4.0/gtk.css
+    gtk4_css = CONFIG / "gtk-4.0" / "gtk.css"
+    src = theme_path / "gtk-4.0" / "gtk.css"
+    if src.exists():
+        if gtk4_css.is_symlink() or gtk4_css.exists():
+            gtk4_css.unlink()
+        gtk4_css.symlink_to(src)
+
+    # el gtk.css de GTK3 lo resuelve el propio tema por nombre; un enlace viejo
+    # (p.ej. al gtk.css generado del wallpaper) lo pisaria, asi que se quita.
+    gtk3_css = CONFIG / "gtk-3.0" / "gtk.css"
+    if gtk3_css.is_symlink():
+        gtk3_css.unlink()
+
+    print(f"Tema GTK: {gtk_theme} · iconos: {icon_theme} (acento {colors['accent']})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -113,8 +113,8 @@ done
 #   sin qt5-wayland     -> `Could not find the Qt platform plugin "wayland"` (SIGABRT)
 # (con DisplayServer=wayland el greeter corre con -platform wayland).
 # En el desktop no se veía porque algún otro paquete Qt5 ya jalaba todo esto.
-PKGS_REPO="hyprland hypridle hyprlock uwsm sddm qt5-declarative qt5-wayland qt5-quickcontrols2 qt5-graphicaleffects polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim slurp wl-clipboard hyprpicker satty tesseract tesseract-data-eng tesseract-data-spa nautilus impala bluetui wiremix jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
-PKGS_AUR="aether xdg-terminal-exec python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
+PKGS_REPO="hyprland hypridle hyprlock uwsm sddm qt5-declarative qt5-wayland qt5-quickcontrols2 qt5-graphicaleffects polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim slurp wl-clipboard hyprpicker satty tesseract tesseract-data-eng tesseract-data-spa nautilus impala bluetui wiremix jq ttf-jetbrains-mono-nerd ttf-ubuntu-font-family btop hunspell nautilus-python"
+PKGS_AUR="aether xdg-terminal-exec python-terminaltexteffects vencord-installer-git yaru-gtk-theme yaru-icon-theme elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
 PKGS_APPS="zen-browser-bin obsidian keepassxc mpv imv evince zapzap visual-studio-code-bin"
 PKGS_OPT="kitty foot ghostty mise"
 
@@ -226,6 +226,17 @@ if [ -f "$REPO_DIR/theming/current/quickshell-colors.json" ]; then
               "$CONFIG_DIR/chocomazapan/quickshell-colors.json" || true
 fi
 
+# Tema GTK: Yaru (look Ubuntu), con la variante de color siguiendo el acento del
+# wallpaper. chocomazapan-gtk-theme-sync fija gtk-theme / icon-theme / font en
+# gsettings + settings.ini y enlaza ~/.config/gtk-4.0/gtk.css al gtk.css del tema
+# (libadwaita — Nautilus, Evince... — ignora gtk-theme y solo carga ese archivo).
+# Idempotente y se vuelve a correr en cada cambio de wallpaper (sync_desktop).
+# Requiere los paquetes AUR yaru-gtk-theme y yaru-icon-theme (+ ttf-ubuntu-font-family).
+if [ -f "$REPO_DIR/theming/current/colors.toml" ]; then
+    "$REPO_DIR/bin/chocomazapan-gtk-theme-sync" || \
+        echo "Aviso: falta el tema Yaru; instala 'yaru-gtk-theme yaru-icon-theme' (AUR)." >&2
+fi
+
 # --- Dotfiles sueltos de $HOME (no viven bajo ~/.config) --------------------
 # .XCompose necesita el include "%L" para que las teclas muertas (´ + a = á)
 # funcionen en apps Qt/Wayland.
@@ -239,13 +250,10 @@ done
 
 # --- Tema de VS Code -------------------------------------------------------
 # aether regenera theming/current/vscode-extension/ en cada cambio de wallpaper;
-# solo falta que la extensión instalada apunte ahí en vez de a una copia estática.
-if [ -d "$HOME/.vscode/extensions" ]; then
-    link_path "$REPO_DIR/theming/current/vscode-extension" \
-              "$HOME/.vscode/extensions/local.theme-aether-1.0.0" || true
-else
-    echo "Aviso: ~/.vscode/extensions no existe (¿VS Code no instalado?), se omite el tema." >&2
-fi
+# chocomazapan-vscode-sync enlaza esa extensión y fija workbench.colorTheme.
+# Es idempotente y vuelve a correr en cada cambio de wallpaper (sync_desktop),
+# así que se auto-repara si ~/.vscode/extensions aún no existía aquí.
+"$REPO_DIR/bin/chocomazapan-vscode-sync" || true
 
 # --- Pasos que requieren root (opcional) ----------------------------------
 if [ -t 0 ] && command -v sudo >/dev/null 2>&1; then

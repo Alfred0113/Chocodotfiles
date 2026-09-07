@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+# meta:summary=Sync the VS Code / VSCodium color theme with the active dotfiles theme
+"""Deja a VS Code (build de Microsoft) usando el tema generado por aether.
+
+aether regenera theming/current/vscode-extension/ (una extensión local completa,
+label "Aether") en cada cambio de wallpaper. Este script hace las tres cosas que
+faltan para que eso se vea:
+
+  1. Enlaza esa carpeta como extensión instalada
+     (~/.vscode/extensions/local.theme-aether-<version> -> theming/current/vscode-extension).
+  2. Registra la extensión en ~/.vscode/extensions/extensions.json. VS Code
+     moderno (>=1.74) NO escanea carpetas sueltas: solo carga lo que está en ese
+     manifiesto, así que el symlink por sí solo no basta.
+  3. Fija "workbench.colorTheme" en el settings.json del usuario al nombre del
+     tema (theming/current/vscode.json -> "name", normalmente "Aether").
+
+El nombre del tema no cambia entre wallpapers (siempre "Aether"), solo cambia el
+JSON de colores dentro de la extensión; VS Code observa el archivo del tema activo
+y lo recarga en caliente cuando cambia en disco, así que una vez enlazado esto
+corre casi en vacío. Se llama igual en cada cambio de wallpaper (idempotente) para
+auto-repararse en una máquina donde ~/.vscode/extensions no existía al instalar.
+
+Cubre tanto Code (Microsoft) como VSCodium si están presentes. Solo actúa sobre
+lo que ya existe: si no hay carpeta de extensiones para un build, lo salta. Una
+ventana de VS Code ya abierta necesita "Developer: Reload Window" la primera vez
+(para cargar la extensión nueva); después los cambios de color entran solos.
+"""
+
+import json
+import re
+import shutil
+import sys
+import time
+from pathlib import Path
+
+DOTFILES = Path.home() / ".dotfiles"
+CURRENT = DOTFILES / "theming" / "current"
+VSCODE_META = CURRENT / "vscode.json"
+EXTENSION_SRC = CURRENT / "vscode-extension"
+COLORS_TOML = CURRENT / "colors.toml"
+
+# (carpeta de extensiones, carpeta User del build). Se procesa la que exista.
+BUILDS = [
+    (Path.home() / ".vscode" / "extensions", Path.home() / ".config" / "Code" / "User"),
+    (Path.home() / ".vscode-oss" / "extensions", Path.home() / ".config" / "VSCodium" / "User"),
+]
+
+# Comentarios estilo JSONC. Solo para *leer* un settings.json ajeno sin morir;
+# al escribir siempre se serializa JSON estricto.
+_LINE_COMMENT = re.compile(r'(^|\s)//[^\n]*')
+_BLOCK_COMMENT = re.compile(r'/\*.*?\*/', re.DOTALL)
+
+
+def load_jsonc(text: str):
+    """json.loads tolerante a comentarios y comas colgantes (best effort)."""
+    try:
+        return json.loads(text)
+    except ValueError:
+        stripped = _BLOCK_COMMENT.sub("", text)
+        stripped = _LINE_COMMENT.sub(lambda m: m.group(1), stripped)
+        stripped = re.sub(r",(\s*[}\]])", r"\1", stripped)
+        return json.loads(stripped)
+
+
+def _mix(a: str, b: str, t: float) -> str:
+    a, b = a.lstrip("#"), b.lstrip("#")
+    ai = [int(a[i : i + 2], 16) for i in (0, 2, 4)]
+    bi = [int(b[i : i + 2], 16) for i in (0, 2, 4)]
+    return "#%02x%02x%02x" % tuple(round(ai[k] + (bi[k] - ai[k]) * t) for k in range(3))
+
+
+def boost_contrast() -> None:
+    """aether deja casi todo el UI del tema en dos tonos (fondo casi negro + un
+    gris) y sin bordes, así que editor / sidebar / panel / popups se funden entre
+    sí. Aquí se recalcula una rampa de elevación interpolando background->foreground
+    con factores pequeños y se añaden bordes visibles. Los tonos base se leen de
+    colors.toml (no del propio tema), así que es idempotente aunque aether ya haya
+    corrido. Mantiene el tinte cálido del wallpaper.
+    """
+    try:
+        import tomllib
+
+        pal = tomllib.loads(COLORS_TOML.read_text())
+        bg, fg = pal["background"], pal["foreground"]
+        accent = pal.get("accent", "#8376d5")
+    except (OSError, ValueError, KeyError):
+        return
+
+    editor = _mix(bg, fg, 0.030)   # superficie más profunda (editor)
+    surface = _mix(bg, fg, 0.075)  # sidebar / activity bar / panel / terminal
+    elevated = _mix(bg, fg, 0.120)  # title bar / status bar / tabs / popups / inputs
+    border = _mix(bg, fg, 0.190)   # separadores visibles
+
+    overrides = {
+        "editor.background": editor,
+        "editorGutter.background": editor,
+        "breadcrumb.background": editor,
+        "tab.activeBackground": editor,
+        "peekViewEditor.background": editor,
+        "sideBar.background": surface,
+        "sideBarSectionHeader.background": surface,
+        "activityBar.background": surface,
+        "panel.background": surface,
+        "terminal.background": surface,
+        "editorGroupHeader.tabsBackground": elevated,
+        "tab.inactiveBackground": elevated,
+        "titleBar.activeBackground": elevated,
+        "titleBar.inactiveBackground": elevated,
+        "statusBar.background": elevated,
+        "statusBar.noFolderBackground": elevated,
+        "statusBar.debuggingBackground": elevated,
+        "editorWidget.background": elevated,
+        "editorSuggestWidget.background": elevated,
+        "editorHoverWidget.background": elevated,
+        "debugToolBar.background": elevated,
+        "menu.background": elevated,
+        "quickInput.background": elevated,
+        "input.background": elevated,
+        "dropdown.background": elevated,
+        "notifications.background": elevated,
+        "sideBar.border": border,
+        "activityBar.border": border,
+        "panel.border": border,
+        "statusBar.border": border,
+        "titleBar.border": border,
+        "editorGroupHeader.tabsBorder": border,
+        "editorGroupHeader.border": border,
+        "tab.border": border,
+        "widget.border": border,
+        "menu.border": border,
+        "editorWidget.border": border,
+        "input.border": border,
+        "dropdown.border": border,
+        "list.activeSelectionBackground": accent + "33",
+        "list.inactiveSelectionBackground": accent + "22",
+    }
+
+    for theme_file in (EXTENSION_SRC / "themes").glob("*.json"):
+        try:
+            data = json.loads(theme_file.read_text())
+        except (OSError, ValueError):
+            continue
+        colors = data.get("colors")
+        if not isinstance(colors, dict):
+            continue
+        if all(colors.get(k) == v for k, v in overrides.items()):
+            continue
+        colors.update(overrides)
+        theme_file.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+        print(f"{theme_file.name}: rampa de contraste aplicada")
+
+
+def theme_name() -> str:
+    try:
+        return json.loads(VSCODE_META.read_text()).get("name") or "Aether"
+    except (OSError, ValueError):
+        return "Aether"
+
+
+def extension_ids() -> tuple[str, str, str]:
+    """(id 'publisher.name', version, dirname 'publisher.name-version')."""
+    pkg = json.loads((EXTENSION_SRC / "package.json").read_text())
+    ext_id = f"{pkg['publisher']}.{pkg['name']}"
+    version = str(pkg["version"])
+    return ext_id, version, f"{ext_id}-{version}"
+
+
+def link_extension(ext_dir: Path, dirname: str) -> Path:
+    dest = ext_dir / dirname
+    src = EXTENSION_SRC.resolve()
+
+    if not (dest.is_symlink() and dest.resolve() == src):
+        if dest.is_symlink() or dest.exists():
+            backup = dest.with_name(dest.name + ".pre-dotfiles-bak")
+            if backup.is_symlink() or backup.exists():
+                if backup.is_dir() and not backup.is_symlink():
+                    shutil.rmtree(backup)
+                else:
+                    backup.unlink()
+            dest.rename(backup)
+            print(f"Respaldado {dest} -> {backup}")
+        dest.symlink_to(src)
+        print(f"Enlazado: {dest} -> {src}")
+    return dest
+
+
+def register_extension(ext_dir: Path, ext_id: str, version: str, dirname: str, dest: Path) -> None:
+    """Asegura la entrada de la extensión en extensions.json (el manifiesto que
+    VS Code moderno usa como única fuente de verdad de lo instalado)."""
+    manifest_file = ext_dir / "extensions.json"
+
+    entries = []
+    if manifest_file.exists() and manifest_file.stat().st_size > 0:
+        try:
+            entries = load_jsonc(manifest_file.read_text())
+        except ValueError:
+            print(f"Aviso: {manifest_file} ilegible; se reescribe solo con el tema.", file=sys.stderr)
+            entries = []
+    if not isinstance(entries, list):
+        entries = []
+
+    entry = {
+        "identifier": {"id": ext_id},
+        "version": version,
+        "location": {"$mid": 1, "path": str(dest), "scheme": "file"},
+        "relativeLocation": dirname,
+        "metadata": {"installedTimestamp": int(time.time() * 1000), "source": "vsix", "pinned": True},
+    }
+
+    others = [
+        e for e in entries
+        if not (isinstance(e, dict) and e.get("identifier", {}).get("id", "").lower() == ext_id.lower())
+    ]
+    existing = next(
+        (e for e in entries
+         if isinstance(e, dict) and e.get("identifier", {}).get("id", "").lower() == ext_id.lower()),
+        None,
+    )
+    if existing == entry:
+        return
+    # Conserva installedTimestamp previo si ya estaba (evita reescribir en vano).
+    if existing and existing.get("version") == version and existing.get("relativeLocation") == dirname:
+        entry["metadata"]["installedTimestamp"] = (
+            existing.get("metadata", {}).get("installedTimestamp") or entry["metadata"]["installedTimestamp"]
+        )
+        if existing == entry:
+            return
+
+    manifest_file.write_text(json.dumps(others + [entry], indent=2) + "\n")
+    print(f"{manifest_file}: registrada {ext_id}@{version}")
+
+
+def set_color_theme(user_dir: Path, name: str) -> None:
+    user_dir.mkdir(parents=True, exist_ok=True)
+    settings_file = user_dir / "settings.json"
+
+    settings: dict = {}
+    if settings_file.exists() and settings_file.stat().st_size > 0:
+        try:
+            settings = load_jsonc(settings_file.read_text())
+        except ValueError:
+            print(
+                f"Aviso: no pude parsear {settings_file}; agrega a mano\n"
+                f'  "workbench.colorTheme": "{name}"',
+                file=sys.stderr,
+            )
+            return
+
+    if not isinstance(settings, dict):
+        print(f"Aviso: {settings_file} no es un objeto JSON; se omite.", file=sys.stderr)
+        return
+
+    if settings.get("workbench.colorTheme") == name:
+        return
+
+    settings["workbench.colorTheme"] = name
+    settings_file.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n")
+    print(f"{settings_file}: workbench.colorTheme = {name}")
+
+
+def main() -> int:
+    if not EXTENSION_SRC.is_dir() or not (EXTENSION_SRC / "package.json").is_file():
+        print(
+            f"No existe {EXTENSION_SRC}. Corre chocomazapan-wallpaper-set primero.",
+            file=sys.stderr,
+        )
+        return 1
+
+    boost_contrast()
+
+    name = theme_name()
+    ext_id, version, dirname = extension_ids()
+
+    touched = False
+    for ext_dir, user_dir in BUILDS:
+        if not ext_dir.is_dir():
+            continue
+        touched = True
+        dest = link_extension(ext_dir, dirname)
+        register_extension(ext_dir, ext_id, version, dirname, dest)
+        set_color_theme(user_dir, name)
+
+    if not touched:
+        print("Ni ~/.vscode ni ~/.vscode-oss existen; VS Code no está instalado. Se omite.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
