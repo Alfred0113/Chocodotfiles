@@ -31,6 +31,22 @@ Item {
 
     property int failCount: 0
 
+    // Usuario a autenticar. Normalmente el ultimo que entro
+    // (userModel.lastUser); en una instalacion nueva eso viene VACIO y sin
+    // este fallback el tema mandaba usuario "" -> PAM: "user unknown". El
+    // Repeater de abajo lo rellena con el primer usuario real del sistema.
+    property string resolvedUser: userModel.lastUser
+
+    Repeater {
+        model: userModel
+        delegate: Item {
+            Component.onCompleted: {
+                if (root.resolvedUser === "" && index === 0)
+                    root.resolvedUser = model.name
+            }
+        }
+    }
+
     // --- Fondo ------------------------------------------------------------
     Rectangle {
         anchors.fill: parent
@@ -136,8 +152,7 @@ Item {
 
     function tryLogin() {
         errorLabel.text = ""
-        var uname = userModel.lastUser
-        sddm.login(uname, pw.text, sessionModel.lastIndex)
+        sddm.login(root.resolvedUser, pw.text, sessionModel.lastIndex)
     }
 
     Connections {
