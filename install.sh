@@ -95,8 +95,16 @@ done
 # en el repo cachyos). PKGS_AUR necesitan un helper (paru/yay). Los
 # opcionales no se instalan solos. Se corre antes de generar el tema
 # porque esa parte necesita 'aether'.
-PKGS_REPO="hyprland hypridle hyprlock uwsm sddm polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
-PKGS_AUR="aether python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
+#
+# Se instala solo lo que necesita el escritorio para funcionar como está
+# configurado (shell, barra, tema, y las apps a las que apuntan los binds y
+# los scripts de bin/: nautilus para SUPER+SHIFT+F, xdg-terminal-exec para
+# SUPER+RETURN, satty/slurp/wl-clipboard/hyprpicker/tesseract para las
+# capturas, impala/bluetui/wiremix para los menús de wifi/bt/audio).
+# Las apps personales (navegador, obsidian, keepassxc, mpv, discord, etc.)
+# NO se instalan — ver la lista al final.
+PKGS_REPO="hyprland hypridle hyprlock uwsm sddm polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim slurp wl-clipboard hyprpicker satty tesseract tesseract-data-eng tesseract-data-spa nautilus impala bluetui wiremix jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
+PKGS_AUR="aether xdg-terminal-exec python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
 PKGS_OPT="kitty foot ghostty mise"
 
 if command -v pacman >/dev/null 2>&1; then
@@ -463,6 +471,11 @@ fi
 # --- Pasos manuales restantes ------------------------------------------
 echo
 echo "Listo. Pasos manuales que quedan:"
+echo
+echo "  Apps personales (NO las instala este script — pon las que uses):"
+echo "    paru -S --needed zen-browser-bin obsidian keepassxc zapzap \\"
+echo "                     mpv imv evince signal-desktop spotify-launcher \\"
+echo "                     visual-studio-code-bin 1password"
 echo
 echo "  Vencord (si usas Discord):"
 echo "    vencordinstallercli -install -branch stable   # el paquete ya se instaló"

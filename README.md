@@ -21,6 +21,7 @@ git clone <este repo> ~/.dotfiles
 Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 
 **No incluido en el repo** (se copia / configura aparte):
+- **Apps personales** — `install.sh` instala solo lo que el escritorio necesita para funcionar como está configurado (shell, barra, tema, y las apps a las que apuntan los binds/scripts: `nautilus`, `xdg-terminal-exec`, `satty`/`slurp`/`hyprpicker`/`tesseract` para capturas, `impala`/`bluetui`/`wiremix` para wifi/bt/audio). El navegador, Obsidian, KeePassXC, mpv, Discord, VS Code, etc. se instalan a mano — `install.sh` los lista al final.
 - Wallpapers propios → `~/Imágenes/Wallpapers/`. El repo solo trae unos pocos de arranque (`theming/themes/aether/backgrounds/`); agrega los tuyos ahí después.
 - `~/.config/fish/` — funciones propias sin versionar (`waybarestart.fish` usa `chocomazapan-restart-waybar`).
 - `~/.config/tmux/tmux.conf` — lo lee `chocomazapan-menu-tmux-keybindings`.
