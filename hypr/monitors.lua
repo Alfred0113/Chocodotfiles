@@ -33,5 +33,28 @@ hl.monitor({ output = "DP-1", mode = "1920x1080@74.97", position = "1920x0", sca
 -- Disable the second ghost monitor on an Apple 6K XDR over Thunderbolt.
 -- hl.monitor({ output = "DP-2", disabled = true })
 
-hl.workspace_rule({ workspace = "1", monitor = "DP-2", default = true })
-hl.workspace_rule({ workspace = "2", monitor = "DP-1", default = true })
+-- Deteccion de laptop en lua puro: no depende del PATH ni de os.execute, que
+-- en el parser de Hyprland no siempre funcionan (o.is_laptop() sale falso).
+local function is_laptop()
+  local f = io.open("/sys/class/dmi/id/chassis_type", "r")
+  if f then
+    local t = tonumber((f:read("*a") or ""):match("%d+"))
+    f:close()
+    -- 8 Portable, 9 Laptop, 10 Notebook, 14 Sub-Notebook, 30/31/32 tablet/convertible
+    if t == 8 or t == 9 or t == 10 or t == 14 or t == 30 or t == 31 or t == 32 then
+      return true
+    end
+  end
+  local b = io.open("/sys/class/power_supply/BAT0/type", "r")
+  if b then b:close(); return true end
+  return false
+end
+
+-- Workspace por defecto de cada monitor. En la laptop (solo eDP-1) las reglas
+-- de DP-* no aplican y Hyprland arrancaba en un workspace cualquiera (2, 3...).
+if is_laptop() then
+  hl.workspace_rule({ workspace = "1", monitor = "eDP-1", default = true })
+else
+  hl.workspace_rule({ workspace = "1", monitor = "DP-2", default = true })
+  hl.workspace_rule({ workspace = "2", monitor = "DP-1", default = true })
+end

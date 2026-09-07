@@ -20,8 +20,10 @@ hl.config({
     -- accel_profile = "flat",
 
     touchpad = {
-      -- Use natural (inverse) scrolling.
-      -- natural_scroll = true,
+      -- Scroll natural: el contenido sigue a los dedos (como en el celular).
+      -- Sin esto (default de core/input.lua = false) el touchpad scrollea al
+      -- reves de lo esperado en una laptop.
+      natural_scroll = true,
 
       -- Use two-finger clicks for right-click instead of lower-right corner.
       clickfinger_behavior = true,
