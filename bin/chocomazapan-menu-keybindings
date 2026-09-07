@@ -247,7 +247,7 @@ dynamic_bindings() {
       [[ -z $description && $dispatcher == "__lua" ]] && continue
 
       modifiers=$(modmask_to_text "$modmask")
-      arg="${arg//~\/dotfiles\/bin\//}"
+      arg="${arg//~\/.dotfiles\/bin\//}"
       arg="${arg//uwsm app -- /}"
       arg="${arg//uwsm-app -- /}"
 

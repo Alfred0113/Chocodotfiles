@@ -12,7 +12,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-COLORS_FILE = Path.home() / "dotfiles" / "theming" / "current" / "colors.toml"
+COLORS_FILE = Path.home() / ".dotfiles" / "theming" / "current" / "colors.toml"
 
 YARU_PALETTE = {
     "blue": (0x26, 0x86, 0xE6),

@@ -51,8 +51,8 @@ install_windows() {
   mkdir -p "$HOME/.local/share/applications/icons"
 
   # Install Windows VM icon and desktop file
-  if [[ -f $HOME/dotfiles/bin/assets/windows.png ]]; then
-    cp "$HOME/dotfiles/bin/assets/windows.png" "$HOME/.local/share/applications/icons/windows.png"
+  if [[ -f $HOME/.dotfiles/bin/assets/windows.png ]]; then
+    cp "$HOME/.dotfiles/bin/assets/windows.png" "$HOME/.local/share/applications/icons/windows.png"
   fi
 
   cat << EOF | tee "$HOME/.local/share/applications/windows-vm.desktop" > /dev/null

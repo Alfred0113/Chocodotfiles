@@ -11,7 +11,7 @@ Type=oneshot
 User=alfredo
 Group=alfredo
 Environment=HOME=/home/alfredo
-ExecStart=/home/alfredo/dotfiles/bin/chocomazapan-sddm-bg
+ExecStart=/home/alfredo/.dotfiles/bin/chocomazapan-sddm-bg
 # No frenar el arranque si algo falla (queda el current.jpg anterior / fallbackColor)
 SuccessExitStatus=0 1
 

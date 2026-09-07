@@ -12,7 +12,7 @@
 set -u
 
 BG_DIR="$HOME/Imágenes/Wallpapers"
-CACHE_FILE="$HOME/dotfiles/theming/current/sddm-bg-cache"
+CACHE_FILE="$HOME/.dotfiles/theming/current/sddm-bg-cache"
 OUT_DIR="/usr/share/sddm/themes/chocomazapan/backgrounds"
 VARIANTS=4
 MIN_W=1920

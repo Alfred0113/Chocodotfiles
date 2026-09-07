@@ -1,10 +1,10 @@
 #!/bin/bash
-# Selecciona el tema activo en ~/dotfiles/theming/current.
+# Selecciona el tema activo en ~/.dotfiles/theming/current.
 # Uso: chocomazapan-theme-set <nombre>   (o "next" / sin argumentos para rotar)
 
 set -euo pipefail
 
-THEMING_DIR="$HOME/dotfiles/theming"
+THEMING_DIR="$HOME/.dotfiles/theming"
 THEMES_DIR="$THEMING_DIR/themes"
 CURRENT_LINK="$THEMING_DIR/current"
 

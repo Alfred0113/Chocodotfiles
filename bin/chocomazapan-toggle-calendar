@@ -2,7 +2,7 @@
 
 # meta:summary=Toggle the calendar popup (QuickShell, bound to waybar's calendar icon)
 
-QML="$HOME/dotfiles/quickshell/calendar-popup.qml"
+QML="$HOME/.dotfiles/quickshell/calendar-popup.qml"
 pid=$(pgrep -f "quickshell -p $QML" | head -1)
 
 if [[ -n $pid ]]; then

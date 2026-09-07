@@ -7,7 +7,7 @@
 # cached and only rebuilt when the folder's contents change.
 
 BG_DIR="$HOME/Imágenes/Wallpapers"
-CACHE_FILE="$HOME/dotfiles/theming/current/lockscreen-bg-cache"
+CACHE_FILE="$HOME/.dotfiles/theming/current/lockscreen-bg-cache"
 MIN_W=1920
 MIN_H=1080
 

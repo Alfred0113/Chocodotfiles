@@ -36,7 +36,7 @@ fi
 FLAG_NAME="$1"
 ACTION="${2:-toggle}"
 FLAG_FILE="$HOME/.local/state/chocomazapan/toggles/hypr/$FLAG_NAME.lua"
-FLAG_SOURCE="$HOME/dotfiles/hypr/core/toggle-flags/$FLAG_NAME.lua"
+FLAG_SOURCE="$HOME/.dotfiles/hypr/core/toggle-flags/$FLAG_NAME.lua"
 
 on() {
   if [[ -f $FLAG_SOURCE ]]; then

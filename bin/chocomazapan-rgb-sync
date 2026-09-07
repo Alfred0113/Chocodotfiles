@@ -6,7 +6,7 @@ if chocomazapan-toggle-enabled rgb-sync-off; then
     exit 0
 fi
 
-COLOR_FILE="$HOME/dotfiles/theming/current/rgb-color"
+COLOR_FILE="$HOME/.dotfiles/theming/current/rgb-color"
 
 if [[ ! -f $COLOR_FILE ]]; then
     echo "No hay theming/current/rgb-color todavía. Corre chocomazapan-wallpaper-set primero." >&2

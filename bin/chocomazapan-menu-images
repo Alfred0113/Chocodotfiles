@@ -92,7 +92,7 @@ done_file=$(mktemp)
 rm -f "$done_file"
 trap 'rm -f "$selection_file" "$done_file"' EXIT
 socket_path="${XDG_RUNTIME_DIR:-/run/user/$UID}/wallpaper-selector.sock"
-selector_qml="$HOME/dotfiles/quickshell/select-by-image.qml"
+selector_qml="$HOME/.dotfiles/quickshell/select-by-image.qml"
 
 image_dirs_env=""
 for dir in "${image_dirs[@]}"; do

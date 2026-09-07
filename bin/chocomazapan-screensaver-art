@@ -5,10 +5,10 @@
 
 set -euo pipefail
 
-COLORS_FILE="$HOME/dotfiles/theming/current/colors.toml"
-OUT_TXT="$HOME/dotfiles/theming/current/screensaver.txt"
+COLORS_FILE="$HOME/.dotfiles/theming/current/colors.toml"
+OUT_TXT="$HOME/.dotfiles/theming/current/screensaver.txt"
 FONT="/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Bold.ttf"
-CUSTOM_IMAGE="$HOME/dotfiles/theming/screensaver-custom.png"
+CUSTOM_IMAGE="$HOME/.dotfiles/theming/screensaver-custom.png"
 
 # Si el usuario puso su propia imagen aquí, se usa tal cual (vía chafa) en
 # vez de generar el texto degradado "AlfredoPC".

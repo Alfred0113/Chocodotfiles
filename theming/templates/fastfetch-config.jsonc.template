@@ -101,7 +101,7 @@
       "type": "command",
       "key": "│ ├󰸌",
       "keyColor": "blue",
-      "text": "theme=$(basename \"$(readlink ~/dotfiles/theming/current/wallpaper 2>/dev/null)\" 2>/dev/null); echo -e \"${theme:0:20} \\e[38m●\\e[36m●\\e[34m●\\e[32m●\""
+      "text": "theme=$(basename \"$(readlink ~/.dotfiles/theming/current/wallpaper 2>/dev/null)\" 2>/dev/null); echo -e \"${theme:0:20} \\e[38m●\\e[36m●\\e[34m●\\e[32m●\""
     },
     {
       "type": "terminalfont",

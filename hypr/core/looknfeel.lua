@@ -11,7 +11,7 @@ local function strip_hash(hex)
   return (hex:gsub("^#", ""))
 end
 
-local hyprland_colors_path = (os.getenv("HOME") or "") .. "/dotfiles/theming/current/hyprland-colors.lua"
+local hyprland_colors_path = (os.getenv("HOME") or "") .. "/.dotfiles/theming/current/hyprland-colors.lua"
 local ok, theme_colors = pcall(dofile, hyprland_colors_path)
 if not ok or type(theme_colors) ~= "table" then
   theme_colors = { active = "#33ccff", inactive = "#595959" }

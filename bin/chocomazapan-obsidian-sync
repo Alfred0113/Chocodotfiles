@@ -11,7 +11,7 @@ from pathlib import Path
 VAULT_DIR = Path.home() / "Documentos" / "Machiliztli"
 SNIPPET_NAME = "chocomazapan"
 
-SOURCE_CSS = Path.home() / "dotfiles" / "theming" / "current" / "obsidian.css"
+SOURCE_CSS = Path.home() / ".dotfiles" / "theming" / "current" / "obsidian.css"
 
 
 def main() -> int:

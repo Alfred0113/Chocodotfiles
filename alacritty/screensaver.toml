@@ -1,7 +1,7 @@
 # Imports the current theme's colors directly (--config-file replaces the
 # normal config lookup, it doesn't chain to alacritty.toml on its own), so
 # the screensaver's background matches the theme instead of being fixed.
-general.import = [ "~/dotfiles/theming/current/alacritty.toml" ]
+general.import = [ "~/.dotfiles/theming/current/alacritty.toml" ]
 
 [font]
 size = 10.0

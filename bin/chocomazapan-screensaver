@@ -15,7 +15,7 @@ exit_screensaver() {
 trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT
 
 # Sync background with the current wallpaper-generated theme (falls back to black).
-theme_bg=$(grep -m1 '^background' "$HOME/dotfiles/theming/current/colors.toml" 2>/dev/null | sed -E 's/.*"#?([0-9a-fA-F]{6})".*/\1/')
+theme_bg=$(grep -m1 '^background' "$HOME/.dotfiles/theming/current/colors.toml" 2>/dev/null | sed -E 's/.*"#?([0-9a-fA-F]{6})".*/\1/')
 [[ $theme_bg =~ ^[0-9a-fA-F]{6}$ ]] || theme_bg="000000"
 printf '\033]11;rgb:%s/%s/%s\007' "${theme_bg:0:2}" "${theme_bg:2:2}" "${theme_bg:4:2}"
 
@@ -24,8 +24,8 @@ hyprctl eval 'hl.config({ cursor = { invisible = true } })' &>/dev/null || hyprc
 tty=$(tty 2>/dev/null)
 
 while true; do
-  art="$HOME/dotfiles/theming/current/screensaver.txt"
-  [[ -f $art ]] || art="$HOME/dotfiles/bin/assets/screensaver.txt"
+  art="$HOME/.dotfiles/theming/current/screensaver.txt"
+  [[ -f $art ]] || art="$HOME/.dotfiles/bin/assets/screensaver.txt"
   tte -i "$art" \
     --frame-rate 120 --canvas-width 0 --canvas-height 0 --reuse-canvas --anchor-canvas c --anchor-text c \
     --existing-color-handling always \

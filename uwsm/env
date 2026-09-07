@@ -1,7 +1,7 @@
 # Changes require a restart to take effect.
 
 # Ensure ChocoMazapan (own dotfiles) bins are in the path.
-export PATH=$HOME/dotfiles/bin:$PATH:$HOME/.local/bin
+export PATH=$HOME/.dotfiles/bin:$PATH:$HOME/.local/bin
 
 # Set default terminal and editor
 source ~/.config/uwsm/default

@@ -6,8 +6,8 @@ Configuración personal de escritorio: Hyprland + herramientas asociadas. Máqui
 
 ```
 # antes: ten paru o yay instalado (helper de AUR)
-git clone <este repo> ~/dotfiles
-~/dotfiles/install.sh          # correr DENTRO de la sesión de Hyprland
+git clone <este repo> ~/.dotfiles
+~/.dotfiles/install.sh          # correr DENTRO de la sesión de Hyprland
 ```
 
 `install.sh`:
@@ -39,7 +39,7 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
   - `templates/` → plantillas propias (waybar.css, mako, walker.css, vencord-quickcss.css, quickshell-colors.json, hyprland-colors.lua) que leen `current/colors.toml`
   - `current/` → estado generado (no versionado): paleta activa + assets derivados
   - `themes/aether/` → paleta estática vendorizada de referencia (ya no es el mecanismo activo); `themes/aether/backgrounds/` son los wallpapers de arranque que `install.sh` copia si no tienes ninguno
-- `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/dotfiles/bin` al PATH vía `uwsm/env`.
+- `bin/` → scripts propios (`chocomazapan-wallpaper-set`, `chocomazapan-apply-theme`, `chocomazapan-launch-*`, `chocomazapan-system-lock/wake`, `chocomazapan-menu-keybindings`, `chocomazapan-windows-vm`, ...) usados por keybindings, autostart, y la barra. Añade `~/.dotfiles/bin` al PATH vía `uwsm/env`.
 - `uwsm/` → `~/.config/uwsm` — variables de entorno de la sesión gráfica (PATH, editor/terminal por defecto, etc.)
 - `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
 - `sddm/` → `themes/chocomazapan/` (tema QML del login, imita hyprlock), `conf.d/chocomazapan.conf` y `hyprland.lua` (config del greeter Wayland — teclado latam); `install.sh` (paso root) los copia a `/usr/share/sddm/` y `/etc/sddm.conf.d/`

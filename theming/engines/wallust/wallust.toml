@@ -4,4 +4,4 @@ color_space = "lab"
 
 [templates]
 chocomazapan_colors.template = "colors.toml.template"
-chocomazapan_colors.target = "~/dotfiles/theming/current/colors.toml"
+chocomazapan_colors.target = "~/.dotfiles/theming/current/colors.toml"

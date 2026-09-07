@@ -18,7 +18,7 @@
 set -euo pipefail
 
 WALLPAPER_DIR="$HOME/Imágenes/Wallpapers"
-CURRENT_DIR="$HOME/dotfiles/theming/current"
+CURRENT_DIR="$HOME/.dotfiles/theming/current"
 MODE_STATE_FILE="$CURRENT_DIR/extract-mode"
 
 mkdir -p "$CURRENT_DIR"
@@ -103,7 +103,7 @@ sync_desktop() {
     ln -sfn "$image" "$CURRENT_DIR/wallpaper"
     echo "$mode" >"$MODE_STATE_FILE"
 
-    "$HOME/dotfiles/bin/chocomazapan-apply-theme"
+    "$HOME/.dotfiles/bin/chocomazapan-apply-theme"
 
     # Recarga Hyprland para que tome los bordes de ventana nuevos
     # (theming/current/hyprland-colors.lua).
@@ -128,14 +128,14 @@ sync_desktop() {
     fi
 
     if pidof swayosd-server >/dev/null; then
-        "$HOME/dotfiles/bin/chocomazapan-restart-swayosd" >/dev/null 2>&1 || true
+        "$HOME/.dotfiles/bin/chocomazapan-restart-swayosd" >/dev/null 2>&1 || true
     fi
 
-    "$HOME/dotfiles/bin/chocomazapan-theme-set-browser" >/dev/null 2>&1 || true
-    "$HOME/dotfiles/bin/chocomazapan-icon-theme-sync" >/dev/null 2>&1 || true
-    "$HOME/dotfiles/bin/chocomazapan-rgb-sync" >/dev/null 2>&1 || true
-    "$HOME/dotfiles/bin/chocomazapan-obsidian-sync" >/dev/null 2>&1 || true
-    "$HOME/dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-theme-set-browser" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-icon-theme-sync" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-rgb-sync" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-obsidian-sync" >/dev/null 2>&1 || true
+    "$HOME/.dotfiles/bin/chocomazapan-screensaver-art" >/dev/null 2>&1 || true
 
     echo "Wallpaper: $(basename "$image")"
     echo "Modo: $mode"

@@ -4,6 +4,6 @@
 
 clear
 echo -e "\033[32m"
-cat <~/dotfiles/bin/assets/logo.txt
+cat <~/.dotfiles/bin/assets/logo.txt
 echo -e "\033[0m"
 echo

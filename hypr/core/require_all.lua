@@ -1,6 +1,6 @@
 -- Require every *.lua file in a directory in sorted order.
 -- Pass a module prefix for normal package.path modules, e.g.
---   require_all.files(home .. "/dotfiles/hypr/core/apps", "hypr.core.apps")
+--   require_all.files(home .. "/.dotfiles/hypr/core/apps", "hypr.core.apps")
 -- Pass nil as the prefix when the directory itself has been added to package.path.
 
 local M = {}
