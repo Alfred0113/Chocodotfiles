@@ -310,6 +310,7 @@ BOOT_STEPS=$(cat <<STEPS
   sudo mkdir -p /usr/share/sddm/themes/chocomazapan/backgrounds
   sudo chown "\$USER" /usr/share/sddm/themes/chocomazapan/backgrounds
   "$REPO_DIR/bin/chocomazapan-sddm-bg"
+  sudo install -Dm644 "$REPO_DIR/sddm/conf.d/10-wayland.conf" /etc/sddm.conf.d/10-wayland.conf   # DisplayServer=wayland (sin esto: pantalla negra)
   sudo install -Dm644 "$REPO_DIR/sddm/conf.d/chocomazapan.conf" /etc/sddm.conf.d/chocomazapan.conf
   sudo install -Dm644 "$REPO_DIR/sddm/hyprland.lua" /usr/share/sddm/hyprland.lua  # teclado latam en el greeter
   sudo rm -f /etc/sddm.conf.d/autologin.conf
@@ -376,6 +377,8 @@ case "${BOOT_ANS:-N}" in
         sudo mkdir -p /usr/share/sddm/themes/chocomazapan/backgrounds
         sudo chown "$USER" /usr/share/sddm/themes/chocomazapan/backgrounds
         "$REPO_DIR/bin/chocomazapan-sddm-bg" && echo "Fondo inicial de SDDM generado."
+        sudo install -Dm644 "$REPO_DIR/sddm/conf.d/10-wayland.conf" /etc/sddm.conf.d/10-wayland.conf \
+            && echo "Instalado: /etc/sddm.conf.d/10-wayland.conf (DisplayServer=wayland)"
         sudo install -Dm644 "$REPO_DIR/sddm/conf.d/chocomazapan.conf" /etc/sddm.conf.d/chocomazapan.conf \
             && echo "Instalado: /etc/sddm.conf.d/chocomazapan.conf"
         sudo install -Dm644 "$REPO_DIR/sddm/hyprland.lua" /usr/share/sddm/hyprland.lua \
