@@ -101,10 +101,11 @@ done
 # los scripts de bin/: nautilus para SUPER+SHIFT+F, xdg-terminal-exec para
 # SUPER+RETURN, satty/slurp/wl-clipboard/hyprpicker/tesseract para las
 # capturas, impala/bluetui/wiremix para los menús de wifi/bt/audio).
-# Las apps personales (navegador, obsidian, keepassxc, mpv, discord, etc.)
-# NO se instalan — ver la lista al final.
+# PKGS_APPS son las apps personales (navegador, obsidian, ...): se instalan
+# en un prompt aparte para poder saltarlas en una máquina donde no las quieras.
 PKGS_REPO="hyprland hypridle hyprlock uwsm sddm polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim slurp wl-clipboard hyprpicker satty tesseract tesseract-data-eng tesseract-data-spa nautilus impala bluetui wiremix jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
 PKGS_AUR="aether xdg-terminal-exec python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
+PKGS_APPS="zen-browser-bin obsidian keepassxc mpv imv evince zapzap visual-studio-code-bin"
 PKGS_OPT="kitty foot ghostty mise"
 
 if command -v pacman >/dev/null 2>&1; then
@@ -147,6 +148,26 @@ if command -v pacman >/dev/null 2>&1; then
 
     optmiss=""; for p in $PKGS_OPT; do pacman -Q "$p" &>/dev/null || optmiss="$optmiss $p"; done
     [ -n "$optmiss" ] && echo "Opcionales sin instalar (no se instalan solos):$optmiss"
+
+    # Apps personales — prompt aparte, default sí. Se instalan con el helper
+    # de AUR (paru/yay también resuelve los paquetes de repos).
+    miss_apps=""; for p in $PKGS_APPS; do pacman -Q "$p" &>/dev/null || miss_apps="$miss_apps $p"; done
+    if [ -n "$miss_apps" ]; then
+        aur_helper=""
+        for h in paru yay; do command -v "$h" >/dev/null 2>&1 && { aur_helper="$h"; break; }; done
+        apps_ans="n"
+        if [ -t 0 ]; then
+            read -rp "¿Instalar las apps personales? [Y/n]$miss_apps " apps_r || apps_r=""
+            case "${apps_r:-Y}" in [nN]*) apps_ans="n" ;; *) apps_ans="y" ;; esac
+        fi
+        if [ "$apps_ans" = "y" ] && [ -n "$aur_helper" ]; then
+            "$aur_helper" -S --needed $miss_apps \
+                || echo "Aviso: alguna app falló, revísala a mano." >&2
+        else
+            echo "Para instalarlas luego:"
+            echo "  paru -S --needed$miss_apps   # o yay"
+        fi
+    fi
 fi
 
 # --- Semilla de wallpapers -------------------------------------------------
@@ -472,10 +493,8 @@ fi
 echo
 echo "Listo. Pasos manuales que quedan:"
 echo
-echo "  Apps personales (NO las instala este script — pon las que uses):"
-echo "    paru -S --needed zen-browser-bin obsidian keepassxc zapzap \\"
-echo "                     mpv imv evince signal-desktop spotify-launcher \\"
-echo "                     visual-studio-code-bin 1password"
+echo "  Más apps (el prompt de arriba ya ofreció el set base):"
+echo "    paru -S --needed signal-desktop spotify-launcher 1password"
 echo
 echo "  Vencord (si usas Discord):"
 echo "    vencordinstallercli -install -branch stable   # el paquete ya se instaló"
