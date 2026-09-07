@@ -18,43 +18,57 @@ desktop tras el primer intento de instalar este repo en la laptop.
 
 ## BUG QUE ROMPIÓ EL PRIMER INTENTO — pantalla negra tras el splash
 
-**Causa raíz:** SDDM quedó en su default `DisplayServer=x11`, que ejecuta
-`/usr/bin/X`. Xorg **no se instala** en este setup → el greeter arranca, no
-encuentra el servidor X, y la pantalla se queda **negra** después del splash
-de Plymouth. En el CachyOS del desktop ya venía un
-`/etc/sddm.conf.d/10-wayland.conf`; `install.sh` asumía que existía y ni lo
-creaba.
+Fueron **dos causas encadenadas**. La segunda es la de fondo y la que hay que
+recordar.
 
-**Síntoma exacto visto:** `systemctl status sddm` → `enabled` pero
-`inactive (dead)` tras boot gráfico; `journalctl -b -u sddm` muestra
-`Display server starting...` y `Running: /usr/bin/X -nolisten tcp ...` y ahí
-se queda.
+### Causa 1 (tapa la 2): `DisplayServer=x11` sin Xorg-greeter
 
-### Fix inmediato (correr en la T14)
+SDDM quedó en su default `DisplayServer=x11`. En el CachyOS del desktop ya
+venía un `/etc/sddm.conf.d/10-wayland.conf`; en limpio no. **Fix:** vendorizado
+en `sddm/conf.d/10-wayland.conf`, lo instala `install.sh`. `start-hyprland`
+viene con `hyprland`; `hyprland.lua` lo pone `install.sh`.
+
+### Causa 2 (la real): el greeter Qt5 sin sus libs Qt5
+
+El paquete `sddm` de CachyOS instala **dos** greeters:
+
+- `/usr/bin/sddm-greeter`      → build **Qt5** (necesita `libQt5Quick.so.5`,
+  `libQt5Qml.so.5`)
+- `/usr/bin/sddm-greeter-qt6`  → build Qt6
+
+El daemon `sddm` es Qt6 **pero arranca `sddm-greeter` (el Qt5)** — tanto en
+x11 como en wayland. Y el paquete **no declara Qt5 como dependencia**. En una
+instalación limpia (sin KDE ni apps Qt5) faltan las libs y el greeter muere,
+en **dos etapas** según lo que falte:
+
+1. Sin `qt5-declarative`:
+   `journalctl -b -u sddm` → `/usr/bin/sddm-greeter: error while loading shared
+   libraries: libQt5Quick.so.5` → `sddm-helper exited with 127`.
+   Confirmar: `ldd /usr/bin/sddm-greeter | grep 'not found'`.
+2. Con `qt5-declarative` pero **sin `qt5-wayland`** (con `DisplayServer=wayland`
+   el greeter corre con `-platform wayland`):
+   `sddm-greeter: Could not find the Qt platform plugin "wayland"` →
+   `terminated abnormally with signal 6/ABRT` → `wayland greeter finished 6`.
+   Confirmar: `ls /usr/lib/qt/plugins/platforms/ | grep wayland` (debe existir
+   `libqwayland-*.so`).
+
+En ambos casos: **negro tras Plymouth**. En el desktop no se veía porque otro
+paquete Qt5 ya jalaba todo.
+
+### Fix inmediato
 
 ```bash
-sudo tee /etc/sddm.conf.d/10-wayland.conf >/dev/null <<'EOF'
-[General]
-DisplayServer=wayland
-
-[Wayland]
-CompositorCommand=start-hyprland -- --config /usr/share/sddm/hyprland.lua
-EOF
-
-sudo systemctl start sddm
+sudo pacman -S --needed qt5-declarative qt5-wayland qt5-quickcontrols2 qt5-graphicaleffects
+sudo install -Dm644 ~/.dotfiles/sddm/conf.d/10-wayland.conf /etc/sddm.conf.d/10-wayland.conf
+sudo systemctl restart sddm
 ```
-
-`start-hyprland` viene con el paquete `hyprland` (ya instalado), así que no
-falta nada más. `/usr/share/sddm/hyprland.lua` lo instala `install.sh` (fija
-el teclado `latam` en el greeter).
 
 ### Fix permanente
 
-Ya está en el repo (commit del 2026-09-06): `sddm/conf.d/10-wayland.conf`
-vendorizado + `install.sh` lo instala junto con `chocomazapan.conf`. En la
-T14: `cd ~/.dotfiles && git pull` y el archivo ya viaja; correr `install.sh`
-de nuevo (paso de arranque) lo coloca. O ponerlo a mano con el bloque de
-arriba.
+Ya en el repo: `qt5-declarative qt5-wayland qt5-quickcontrols2
+qt5-graphicaleffects` en `PKGS_REPO` + `sddm/conf.d/10-wayland.conf`
+vendorizado. `cd ~/.dotfiles && git pull && ./install.sh` (paso de paquetes +
+paso de arranque) deja todo.
 
 ## Cómo entrar si la pantalla está negra
 
@@ -70,11 +84,13 @@ arriba.
 ## Verificar que SDDM/Hyprland funcionan
 
 ```bash
-systemctl get-default                 # debe ser graphical.target
-systemctl is-enabled sddm             # enabled
-cat /etc/sddm.conf.d/10-wayland.conf  # DisplayServer=wayland
-ls /usr/share/wayland-sessions/       # hyprland.desktop + hyprland-uwsm.desktop
-sudo systemctl restart sddm           # debe salir el greeter con fondo borroso
+systemctl get-default                       # debe ser graphical.target
+systemctl is-enabled sddm                   # enabled
+cat /etc/sddm.conf.d/10-wayland.conf        # DisplayServer=wayland
+ldd /usr/bin/sddm-greeter | grep 'not found' # NADA (si sale libQt5*, falta qt5-declarative)
+ls /usr/lib/qt/plugins/platforms/ | grep wayland  # libqwayland-*.so (si no: falta qt5-wayland)
+ls /usr/share/wayland-sessions/             # hyprland.desktop + hyprland-uwsm.desktop
+sudo systemctl restart sddm                 # debe salir el greeter con fondo borroso
 ```
 
 **IMPORTANTE al hacer login la 1ª vez:** en el greeter, abajo a la izquierda
@@ -123,7 +139,10 @@ cargan. SDDM recuerda la última sesión (`RememberLastSession=true`).
 - `de11a2f` `mako/config` symlink relativo (roto por el move)
 - `5cc0d8d` `nautilus`, `xdg-terminal-exec`, deps de capturas y menús TUI
 - `8af0465` `PKGS_APPS` (navegador, obsidian, keepassxc, mpv, ...)
-- (este) `sddm/conf.d/10-wayland.conf` vendorizado + instalado
+- `fda7503` `sddm/conf.d/10-wayland.conf` vendorizado + instalado
+- (este) `qt5-declarative qt5-wayland qt5-quickcontrols2 qt5-graphicaleffects`
+  en `PKGS_REPO` — el greeter Qt5 de SDDM sin sus libs/plugin wayland dejaba
+  la pantalla negra
 
 ## Comando de instalación completo (referencia)
 

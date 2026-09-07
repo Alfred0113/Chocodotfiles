@@ -103,7 +103,17 @@ done
 # capturas, impala/bluetui/wiremix para los menús de wifi/bt/audio).
 # PKGS_APPS son las apps personales (navegador, obsidian, ...): se instalan
 # en un prompt aparte para poder saltarlas en una máquina donde no las quieras.
-PKGS_REPO="hyprland hypridle hyprlock uwsm sddm polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim slurp wl-clipboard hyprpicker satty tesseract tesseract-data-eng tesseract-data-spa nautilus impala bluetui wiremix jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
+#
+# qt5-declarative/qt5-wayland/qt5-quickcontrols2/qt5-graphicaleffects: el paquete
+# `sddm` de CachyOS trae dos greeters -- /usr/bin/sddm-greeter (Qt5) y
+# sddm-greeter-qt6 (Qt6) -- y el daemon (aunque es Qt6) arranca el Qt5. Ese
+# binario NO trae sus libs Qt5 como dependencia, así que en una instalación
+# limpia el greeter muere y la pantalla se queda NEGRA tras Plymouth:
+#   sin qt5-declarative -> `error loading shared libraries: libQt5Quick.so.5` (127)
+#   sin qt5-wayland     -> `Could not find the Qt platform plugin "wayland"` (SIGABRT)
+# (con DisplayServer=wayland el greeter corre con -platform wayland).
+# En el desktop no se veía porque algún otro paquete Qt5 ya jalaba todo esto.
+PKGS_REPO="hyprland hypridle hyprlock uwsm sddm qt5-declarative qt5-wayland qt5-quickcontrols2 qt5-graphicaleffects polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim slurp wl-clipboard hyprpicker satty tesseract tesseract-data-eng tesseract-data-spa nautilus impala bluetui wiremix jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
 PKGS_AUR="aether xdg-terminal-exec python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
 PKGS_APPS="zen-browser-bin obsidian keepassxc mpv imv evince zapzap visual-studio-code-bin"
 PKGS_OPT="kitty foot ghostty mise"
@@ -411,8 +421,8 @@ case "${BOOT_ANS:-N}" in
 
         echo
         echo "Listo. Reinicia: Plymouth -> SDDM (tema tipo hyprlock) -> contrasena -> Hyprland."
-        echo "Preview del tema sin reiniciar:"
-        echo "  sddm-greeter-qt6 --test-mode --theme /usr/share/sddm/themes/chocomazapan"
+        echo "Preview del tema sin reiniciar (el greeter real es el Qt5 'sddm-greeter'):"
+        echo "  sddm-greeter --test-mode --theme /usr/share/sddm/themes/chocomazapan"
         echo "Si SDDM falla: menu de Limine -> snapshot, o Ctrl+Alt+F2 -> 'sudo systemctl disable sddm'."
         ;;
     *)
