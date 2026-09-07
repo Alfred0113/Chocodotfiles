@@ -39,7 +39,8 @@ hl.bind("SUPER + SHIFT + ALT + X", hl.dsp.exec_cmd([[chocomazapan-launch-webapp 
 hl.unbind("SUPER + ALT + SPACE")
 hl.bind("SUPER + ALT + SPACE", hl.dsp.exec_cmd("chocomazapan-menu"), { description = "Menu" })
 
--- Override monitor scaling cycle to preserve monitor positions
+-- Ciclo de escala de pantalla (1 -> 1.5 -> 2 -> 2.5). El script solo parcha
+-- las dos variables `local` de monitors.lua y recarga; no toca el layout.
 hl.unbind("SUPER + code:61")
 hl.unbind("SUPER + ALT + code:61")
 hl.bind("SUPER + code:61",       hl.dsp.exec_cmd("bash ~/.config/hypr/scripts/monitor-scaling-cycle.sh"),            { description = "Cycle monitor scaling" })

@@ -4,9 +4,10 @@
 -- Rama t14: config de laptop. La pantalla interna manda; cualquier monitor
 -- externo entra a su resolucion nativa, colocado solo a la derecha.
 
--- Sube ambos a 1.25 si la UI se ve chica en la pantalla de 14" (1920x1200 nativo).
-local gdk_scale = 1
-local monitor_scale = 1
+-- Estas dos las cicla SUPER + /  (hypr/scripts/monitor-scaling-cycle.sh):
+-- monitor_scale 1 / 1.5 / 2 / 2.5  ·  editalas a mano si quieres otro arranque.
+local gdk_scale = 2
+local monitor_scale = 1.5
 
 -- Optimized for retina-class 2x displays, like 13" 2.8K, 27" 5K, 32" 6K.
 -- local gdk_scale = 2
