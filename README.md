@@ -44,7 +44,7 @@ Es idempotente: correrlo de nuevo solo reporta "ya apunta a" / "todo instalado".
 - `plymouth/chocomazapan/` → tema del splash de arranque (el pingüino + "AlfredPC"). `install.sh` (paso root) lo copia a `/usr/share/plymouth/themes/chocomazapan` y lo fija con `plymouth-set-default-theme -R`
 - `sddm/` → `themes/chocomazapan/` (tema QML del login, imita hyprlock), `conf.d/chocomazapan.conf` y `hyprland.lua` (config del greeter Wayland — teclado latam); `install.sh` (paso root) los copia a `/usr/share/sddm/` y `/etc/sddm.conf.d/`
 - `system/` → archivos que van a `/etc` o `/usr/lib/systemd`, aplicados por `install.sh` con sudo (no se symlinkean): `chocomazapan-sddm-bg.service` (fondo aleatorio del login), `plymouth-quit.service.d/override.conf` (`--retain-splash`) y `sudoers.d/chocomazapan-timedatectl` (cambiar zona horaria sin contraseña, reemplaza a `omarchy-tzupdate`)
-  - `system/hibernate/` → config de hibernación **específica del desktop** (RTX 3080 `nvidia-open` 610 + WiFi MT7921); `install.sh` la aplica solo si hay NVIDIA. Ver su [README](system/hibernate/README.md). La T14 no la usa.
+  - `system/hibernate/` → config de hibernación **específica del desktop** (RTX 3080 `nvidia-open` 610 + WiFi MT7921); `install.sh` la aplica solo si `chocomazapan-gpu-mode` es `nvidia`. Ver su [README](system/hibernate/README.md). La T14 (modo `none`) y una laptop híbrida (`hybrid`) no la usan.
 - `nautilus/` → extensiones de `nautilus-python` enlazadas en `~/.local/share/nautilus-python/extensions/`. Por ahora `transcode.py` (menú contextual "Transcode" → `chocomazapan-transcode`)
 - `systemd/user/` → archivos sueltos enlazados dentro de `~/.config/systemd/user/` (no la carpeta completa, ahí también viven unidades ajenas a este repo). Por ahora solo `chocomazapan-battery-monitor.{service,timer}`.
 - `alacritty/` → `~/.config/alacritty` — incluye `screensaver.toml` (override usado solo por el screensaver)
@@ -83,7 +83,7 @@ El screensaver (`chocomazapan-screensaver`) muestra la palabra "ChocoMazapan" en
 
 Además de lo de siempre (Capture, Toggle, Setup, Style, System), dos añadidos que dependen del sistema, no del repo:
 
-- **System → Hibernar** (`systemctl hibernate`) — aparece si el kernel ofrece hibernación (`grep -qw disk /sys/power/state`: swap + `resume=` en la cmdline, que CachyOS pone al instalar con swap). En el **desktop** necesita además la config de [`system/hibernate/`](system/hibernate/) (NVIDIA `nvidia-open` 610 + WiFi MT7921 rompían el resume; `install.sh` la aplica si detecta NVIDIA). En la **T14** (AMD) funciona sola.
+- **System → Hibernar** (`systemctl hibernate`) — aparece si el kernel ofrece hibernación (`grep -qw disk /sys/power/state`: swap + `resume=` en la cmdline, que CachyOS pone al instalar con swap). En el **desktop** necesita además la config de [`system/hibernate/`](system/hibernate/) (NVIDIA `nvidia-open` 610 + WiFi MT7921 rompían el resume; `install.sh` la aplica si `chocomazapan-gpu-mode` es `nvidia`). En la **T14** (AMD) funciona sola.
 - **Setup → Crear snapshot** (`chocomazapan-snapshot-create`) — snapshot de snapper de `/` bajo demanda vía `pkexec`, marcado `important=yes` para que no lo borre pronto la limpieza. Un "punto de restauración" manual antes de hacer cosas locas; se ve en el menú de arranque de Limine. Necesita `snapper` + `limine-snapper-sync` (los trae CachyOS).
 
 ## Laptop vs desktop
@@ -91,6 +91,7 @@ Además de lo de siempre (Capture, Toggle, Setup, Style, System), dos añadidos 
 No hay dos ramas de config: es una sola, pensada para desktop, con lo de laptop en tres estados.
 
 - **`bin/chocomazapan-is-laptop`** — exit 0 si hay batería de sistema (`/sys/class/power_supply/BAT*`, ignorando periféricos) o `hostnamectl chassis` es portátil. Lo usan `install.sh` (timer de batería) y `o.is_laptop()` en la config Lua de Hyprland.
+- **`bin/chocomazapan-gpu-mode`** — imprime `none` (sin NVIDIA — la T14 AMD) / `nvidia` (NVIDIA primaria y única — el desktop) / `hybrid` (laptop iGPU + dGPU NVIDIA). Lo usan `uwsm/env` (qué variables de driver exportar) e `install.sh` (la config de hibernación de `system/hibernate/` es del desktop, solo aplica en modo `nvidia`). El modo `hybrid` deja la sesión en la integrada; la dGPU por render offload (`prime-run`) está **pendiente** — necesita la laptop híbrida real para probar `AQ_DRM_DEVICES`, el power-management de la dGPU y el wrapper de offload.
 - **Degrada solo**: módulo `battery` de Waybar (se oculta sin batería), `chocomazapan-battery-status` (dice "Sin batería" en vez de basura).
 - **Pendiente Fase 8** (scripts sin vendorizar): binds de lid switch / pantalla interna (`hypr/core/bindings/utilities.lua`), `chocomazapan-powerprofiles-init` y `chocomazapan-hyprland-monitor-watch` (`autostart.lua`) — al descomentarlos, envolver en `if o.is_laptop() then`.
 

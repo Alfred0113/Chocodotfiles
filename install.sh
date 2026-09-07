@@ -389,9 +389,12 @@ esac
 # early-KMS, y la MT7921 no sobrevive el ciclo interno de la hibernacion.
 # system/hibernate/ tiene la config que lo arregla (modelo viejo de
 # power-mgmt + NVIDIA fuera del initramfs + mt7921e blacklisteada y cargada
-# por un service). En la T14 (AMD, sin NVIDIA) NO hace falta nada de esto.
+# por un service). En la T14 (AMD, sin NVIDIA) NO hace falta nada de esto, y
+# en una laptop híbrida (iGPU + dGPU) esta config del desktop es incorrecta;
+# por eso se gatea con 'chocomazapan-gpu-mode = nvidia', no con "hay NVIDIA".
 HIB="$REPO_DIR/system/hibernate"
-if [ -t 0 ] && command -v sudo >/dev/null 2>&1 && lspci 2>/dev/null | grep -qi nvidia && [ -d "$HIB" ]; then
+if [ -t 0 ] && command -v sudo >/dev/null 2>&1 \
+   && [ "$("$REPO_DIR/bin/chocomazapan-gpu-mode")" = "nvidia" ] && [ -d "$HIB" ]; then
     read -rp "¿Configurar la hibernación (desktop NVIDIA + MT7921)? [y/N] " HIB_ANS || HIB_ANS="N"
 else
     HIB_ANS="N"
@@ -419,7 +422,7 @@ case "${HIB_ANS:-N}" in
         echo "Rollback: quitar system/hibernate/* de /etc + disable de los 4 services + limine-mkinitcpio."
         ;;
     *)
-        if lspci 2>/dev/null | grep -qi nvidia; then
+        if [ "$("$REPO_DIR/bin/chocomazapan-gpu-mode")" = "nvidia" ]; then
             echo "Saltado el paso de hibernación (aplícalo luego copiando system/hibernate/* a /etc — ver comentarios ahí)."
         fi
         ;;

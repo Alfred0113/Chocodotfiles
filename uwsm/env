@@ -9,10 +9,24 @@ source ~/.config/uwsm/default
 # Activate mise if present on the system
 chocomazapan-cmd-present mise && eval "$(mise activate bash --shims)"
 
-# NVIDIA
-export LIBVA_DRIVER_NAME=nvidia
-export GBM_BACKEND=nvidia-drm
-export __GLX_VENDOR_LIBRARY_NAME=nvidia
-export NVD_BACKEND=direct
-export MOZ_DISABLE_RDD_SANDBOX=1
-export CUDA_DISABLE_PERF_BOOST=1
+# GPU — según bin/chocomazapan-gpu-mode:
+#   nvidia  NVIDIA primaria (el desktop): forzar todo el stack a la NVIDIA.
+#   hybrid  laptop iGPU + dGPU NVIDIA: NO forzar GBM_BACKEND / __GLX_VENDOR a
+#           nvidia — eso rompe el compositor corriendo sobre la integrada. La
+#           dGPU se usa solo por render offload (prime-run / chocomazapan-gpu-run).
+#   none    sin NVIDIA (la T14 AMD): nada.
+case "$(chocomazapan-gpu-mode)" in
+    nvidia)
+        export LIBVA_DRIVER_NAME=nvidia
+        export GBM_BACKEND=nvidia-drm
+        export __GLX_VENDOR_LIBRARY_NAME=nvidia
+        export NVD_BACKEND=direct
+        export MOZ_DISABLE_RDD_SANDBOX=1
+        export CUDA_DISABLE_PERF_BOOST=1
+        ;;
+    hybrid)
+        # Pendiente (requiere la laptop híbrida real para probar): AQ_DRM_DEVICES
+        # con las rutas PCI de la iGPU primero, power-management de la dGPU y el
+        # wrapper de offload. Por ahora la sesión corre 100% en la integrada.
+        : ;;
+esac

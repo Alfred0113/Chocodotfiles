@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# meta:summary=Imprime el modo de GPU: none | nvidia | hybrid.
+#
+#   none    sin GPU NVIDIA (p. ej. la ThinkPad T14 AMD)
+#   nvidia  NVIDIA como GPU primaria y única (el desktop)
+#   hybrid  laptop con iGPU + dGPU NVIDIA: el compositor corre en la
+#           integrada y la NVIDIA solo se usa por render offload (prime-run)
+#
+# Lo consultan uwsm/env (qué variables de driver exportar en la sesión) e
+# install.sh (la config de system/hibernate/ es específica del desktop y NO
+# aplica a una laptop híbrida). El discriminador entre 'nvidia' e 'hybrid' es
+# el mismo que usa el resto del repo: chocomazapan-is-laptop.
+
+if [ ! -e /sys/module/nvidia ] && [ ! -e /dev/nvidia0 ]; then
+    echo none
+elif chocomazapan-is-laptop; then
+    echo hybrid
+else
+    echo nvidia
+fi
