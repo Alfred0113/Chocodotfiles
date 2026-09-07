@@ -95,7 +95,7 @@ done
 # en el repo cachyos). PKGS_AUR necesitan un helper (paru/yay). Los
 # opcionales no se instalan solos. Se corre antes de generar el tema
 # porque esa parte necesita 'aether'.
-PKGS_REPO="hyprland hypridle hyprlock uwsm sddm polkit-gnome fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
+PKGS_REPO="hyprland hypridle hyprlock uwsm sddm polkit-gnome plymouth fish tmux waybar mako walker quickshell awww alacritty swayosd brightnessctl playerctl openrgb chafa imagemagick fastfetch socat grim jq ttf-jetbrains-mono-nerd btop hunspell nautilus-python"
 PKGS_AUR="aether python-terminaltexteffects vencord-installer-git elephant elephant-bluetooth elephant-calc elephant-clipboard elephant-desktopapplications elephant-files elephant-menus elephant-providerlist elephant-runner elephant-symbols elephant-todo elephant-unicode elephant-websearch"
 PKGS_OPT="kitty foot ghostty mise"
 
@@ -325,8 +325,14 @@ case "${BOOT_ANS:-N}" in
 
         # 2. Cmdline del kernel mas silencioso ---------------------------
         # Sin esto, al ceder Plymouth el framebuffer se ve el log de systemd/
-        # udev antes de que Hyprland pinte.
-        if grep -q vt.global_cursor_default /etc/default/limine; then
+        # udev antes de que Hyprland pinte. Solo aplica con el bootloader
+        # Limine (el del desktop); con otro (systemd-boot, GRUB) hay que
+        # agregar 'loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0'
+        # a la cmdline a mano.
+        if [ ! -f /etc/default/limine ]; then
+            echo "Aviso: no hay /etc/default/limine — agrega a mano a la cmdline del kernel:"
+            echo "  loglevel=3 rd.udev.log_level=3 vt.global_cursor_default=0"
+        elif grep -q vt.global_cursor_default /etc/default/limine; then
             echo "cmdline ya tiene los flags de silencio."
         else
             sudo cp /etc/default/limine /etc/default/limine.pre-quiet-bak
