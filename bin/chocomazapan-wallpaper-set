@@ -53,16 +53,33 @@ WALLPAPER_LOG="$CURRENT_DIR/wallpaper-set.log"
 # nuevo por cambio, sin ese problema.
 apply_wallpaper() {
     local image; image="$(readlink -f "$1")"
-    local deadline=$((SECONDS + 20))
+    local deadline=$((SECONDS + 60))
     local expected got last_err=""
 
     # 1. Esperar a que el daemon responda Y ya tenga registrados todos los
     #    outputs que Hyprland reporta (si no, `awww img` pinta en el vacío).
+    #    El daemon se lanza con --no-cache: sin eso, al arrancar restaura en
+    #    segundo plano el último wallpaper de ~/.cache/awww y, si eso llega
+    #    después de nuestro `awww img`, deja el fondo viejo con el tema nuevo
+    #    encima (el bug del login, intermitente y sin rastro en el log).
+    #    Si a los 10s sigue en cero, lo más probable es que el daemon se
+    #    haya colgado al arrancar (carrera con el compositor todavía
+    #    levantando outputs bajo NVIDIA) — se mata y se relanza una vez,
+    #    sin gastar el plazo completo en esperar un daemon que ya no va a
+    #    responder.
+    local stall_check=$((SECONDS + 10)) restarted_daemon=0
     while [ "$SECONDS" -lt "$deadline" ]; do
         expected="$(hyprctl monitors 2>/dev/null | grep -cE '^Monitor ')" || true
         [ "${expected:-0}" -ge 1 ] 2>/dev/null || expected=1
         got="$(awww query 2>/dev/null | grep -c ':')" || true
         [ "${got:-0}" -ge "${expected:-1}" ] && break
+        if [ "$restarted_daemon" -eq 0 ] && [ "$SECONDS" -ge "$stall_check" ]; then
+            pkill -x awww-daemon 2>/dev/null || true
+            sleep 0.3
+            setsid uwsm-app -- awww-daemon --no-cache >/dev/null 2>&1 &
+            disown
+            restarted_daemon=1
+        fi
         sleep 0.2
     done
 
@@ -72,6 +89,12 @@ apply_wallpaper() {
         last_err="$(awww img "$image" --resize crop 2>&1 >/dev/null)" || true
         got="$(awww query 2>/dev/null | grep -F "$image" | grep -c 'currently displaying')" || true
         if [ "${got:-0}" -ge "${expected:-1}" ]; then
+            # Volver a confirmar tras una pausa: en el login, algo que llegue
+            # tarde (p. ej. un daemon viejo restaurando su caché) puede pisar
+            # la imagen justo después de la primera confirmación.
+            sleep 2
+            got="$(awww query 2>/dev/null | grep -F "$image" | grep -c 'currently displaying')" || true
+            [ "${got:-0}" -ge "${expected:-1}" ] || continue
             # NVIDIA a veces deja el page-flip pegado: el daemon ya tiene la
             # imagen nueva pero el compositor no repinta (mismo síntoma que
             # hyprlock transparente tras hibernar). Forzar el reload.
@@ -94,7 +117,7 @@ sync_desktop() {
     local image="$1" mode="$2"
 
     pgrep -x awww-daemon >/dev/null || {
-        setsid uwsm-app -- awww-daemon >/dev/null 2>&1 &
+        setsid uwsm-app -- awww-daemon --no-cache >/dev/null 2>&1 &
         disown
     }
 
