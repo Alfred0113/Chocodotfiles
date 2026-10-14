@@ -236,3 +236,26 @@ menuitem:hover,
 popover.menu modelbutton:hover {
     background-color: alpha(@accent, 0.25);
 }
+
+/* Popovers en general (no solo menús: calendarios, selectores de emoji,
+   etc.) — mismo redondeo, por si el nodo no cae bajo los selectores de
+   arriba en la versión de GTK/libadwaita instalada. */
+popover,
+popover.background,
+popover.menu {
+    border-radius: 14px;
+}
+
+/* Checkboxes y radio buttons — el reset de `* { border-radius: 0 }` de
+   arriba también los aplana (los radio quedaban cuadrados). Redondeo
+   normal para checkbox, circular para radio. */
+checkbutton check,
+treeview.view check,
+check {
+    border-radius: 4px;
+}
+
+radiobutton radio,
+radio {
+    border-radius: 9999px;
+}
