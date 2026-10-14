@@ -1,0 +1,39 @@
+#!/bin/bash
+# Escucha los eventos de Hyprland (socket2) y, cuando un monitor se
+# (re)conecta, le vuelve a pintar el wallpaper actual con awww.
+#
+# Por qué: awww-daemon corre con --no-cache (ver chocomazapan-wallpaper-set),
+# así que cuando un output desaparece y vuelve (monitor apagado/encendido,
+# suspensión, glitch de DisplayPort) awww le crea una capa nueva en negro y
+# nadie la repinta. Esto solo toca la imagen de ese output; el tema no cambia.
+
+set -uo pipefail
+
+CURRENT_WALLPAPER="$HOME/.dotfiles/theming/current/wallpaper"
+SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+
+# Una sola instancia por sesión de Hyprland.
+exec 9>"$XDG_RUNTIME_DIR/chocomazapan-wallpaper-hotplug-$HYPRLAND_INSTANCE_SIGNATURE.lock"
+flock -n 9 || exit 0
+
+repaint() {
+    local output="$1" image deadline=$((SECONDS + 15))
+    image="$(readlink -f "$CURRENT_WALLPAPER")" || return
+    [ -f "$image" ] || return
+
+    # Esperar a que awww registre el output y confirmar que ya lo pinta.
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        if awww query 2>/dev/null | grep -q ": $output:"; then
+            awww img "$image" --resize crop --outputs "$output" >/dev/null 2>&1 || true
+            sleep 0.5
+            awww query 2>/dev/null | grep ": $output:" | grep -qF "$image" && return 0
+        fi
+        sleep 0.5
+    done
+}
+
+socat -U - "UNIX-CONNECT:$SOCKET" | while IFS= read -r line; do
+    case "$line" in
+        monitoradded\>\>*) repaint "${line#monitoradded>>}" & ;;
+    esac
+done
