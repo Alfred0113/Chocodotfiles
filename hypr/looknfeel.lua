@@ -6,8 +6,8 @@ hl.config({
     inactive_opacity = 0.80,
     rounding = 8,
     blur = {
-      size = 4,
-      passes = 2,
+      size = 8,
+      passes = 3,
       vibrancy = 0.35,
       contrast = 1.0,
       noise = 0.02,
