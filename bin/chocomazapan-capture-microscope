@@ -76,7 +76,8 @@ def wait_for_device(timeout=5.0, interval=0.25):
 
 
 # These exact invocations are allowed passwordless via a scoped sudoers rule
-# in /etc/sudoers.d/chocomazapan-microscope - don't change the arguments here
+# in /etc/sudoers.d/chocomazapan-microscope (source: system/sudoers.d/ in this
+# repo, installed by install.sh) - don't change the arguments here
 # without updating that file too, or sudo will fall back to asking for a
 # password (and since QUIRKS is a fixed constant, "quirks=0x90" always
 # matches the literal command that rule allows).

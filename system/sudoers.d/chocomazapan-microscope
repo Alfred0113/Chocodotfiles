@@ -1,0 +1,7 @@
+# Recargar uvcvideo con/sin el quirk del microscopio USB sin contrasena
+# (usado por chocomazapan-capture-microscope). Solo estas 3 invocaciones
+# exactas: si cambian los argumentos en el script, actualizar aqui tambien.
+# Instalado por install.sh.
+%wheel ALL=(root) NOPASSWD: /usr/bin/modprobe -r uvcvideo, \
+                            /usr/bin/modprobe uvcvideo, \
+                            /usr/bin/modprobe uvcvideo quirks\=0x90
