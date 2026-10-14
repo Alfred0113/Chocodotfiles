@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+
+# meta:summary=GUI to view the USB microscope, take photos and record video, with the uvcvideo quirk its firmware needs
+# meta:group=capture
+# meta:requires-sudo=true (passwordless via /etc/sudoers.d/chocomazapan-microscope, scoped to 3 exact modprobe commands)
+# meta:examples=chocomazapan-capture-microscope
+
+# This specific microscope (Jieli Technology USB PHY 2.0, 1224:2a25) has a
+# broken FID bit in its UVC payload headers, which uvcvideo relies on by
+# default to know where one frame ends and the next begins. Without the
+# quirks below the stream looks frozen except when something moves in frame.
+# The quirk is a uvcvideo *module* parameter (applies to every UVC device on
+# the system while loaded), so it's only applied for the duration of this
+# script instead of setting it globally in modprobe.d - that would silently
+# affect any other webcam plugged in later.
+#   0x10 UVC_QUIRK_STREAM_NO_FID  - ignore the broken FID bit
+#   0x80 UVC_QUIRK_FIX_BANDWIDTH  - compute bandwidth instead of trusting the device
+#
+# The video is read from ffmpeg (ffmpeg's v4l2 demuxer tolerates this device's
+# occasional corrupt buffers; guvcview's own capture code can't get a single
+# frame out of it - its select() call always times out) and parsed into
+# individual JPEG frames in this same process. "Take photo" saves whatever
+# frame is already decoded on screen, and "Record" forwards the same raw JPEG
+# bytes to a second ffmpeg process that muxes them into a video file - both
+# avoid opening the device a second time, since this device (like most UVC
+# webcams) only allows one open capture session at a time.
+
+import io
+import signal
+import subprocess
+import sys
+import threading
+import time
+import tkinter as tk
+from datetime import datetime
+from pathlib import Path
+
+from PIL import Image, ImageTk
+
+MICROSCOPE_VID_PID = "1224:2a25"
+QUIRKS = "0x90"
+WIDTH, HEIGHT, FPS = 1280, 720, 30
+
+
+def notify(title, body="", urgency="normal", timeout=5000):
+    subprocess.run(["notify-send", title, body, "-u", urgency, "-t", str(timeout)])
+
+
+def device_present():
+    out = subprocess.run(["lsusb"], capture_output=True, text=True).stdout
+    return MICROSCOPE_VID_PID in out
+
+
+def find_device_path():
+    out = subprocess.run(
+        ["v4l2-ctl", "--list-devices"], capture_output=True, text=True
+    ).stdout
+    lines = out.splitlines()
+    for i, line in enumerate(lines):
+        if "USB CAMERA" in line:
+            for follow in lines[i + 1 : i + 4]:
+                follow = follow.strip()
+                if follow.startswith("/dev/video"):
+                    return follow
+    return None
+
+
+def wait_for_device(timeout=5.0, interval=0.25):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        device = find_device_path()
+        if device:
+            return device
+        time.sleep(interval)
+    return None
+
+
+# These exact invocations are allowed passwordless via a scoped sudoers rule
+# in /etc/sudoers.d/chocomazapan-microscope - don't change the arguments here
+# without updating that file too, or sudo will fall back to asking for a
+# password (and since QUIRKS is a fixed constant, "quirks=0x90" always
+# matches the literal command that rule allows).
+def reload_driver(quirks):
+    subprocess.run(["sudo", "-n", "/usr/bin/modprobe", "-r", "uvcvideo"])
+    return (
+        subprocess.run(
+            ["sudo", "-n", "/usr/bin/modprobe", "uvcvideo", f"quirks={quirks}"]
+        ).returncode
+        == 0
+    )
+
+
+def restore_driver():
+    # The capture process can take a moment to release the device node after
+    # it exits, so "modprobe -r: in use" right after exit is normal - retry
+    # briefly.
+    print("Restaurando uvcvideo sin el quirk (para no afectar otras cámaras)...")
+    for _ in range(10):
+        if subprocess.run(["sudo", "-n", "/usr/bin/modprobe", "-r", "uvcvideo"]).returncode == 0:
+            break
+        time.sleep(0.5)
+    subprocess.run(["sudo", "-n", "/usr/bin/modprobe", "uvcvideo"])
+
+
+def user_dir(xdg_name, fallback):
+    out = subprocess.run(
+        ["xdg-user-dir", xdg_name], capture_output=True, text=True
+    ).stdout.strip()
+    path = Path(out) if out else Path.home() / fallback
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+class MicroscopeApp:
+    def __init__(self, root, device):
+        self.root = root
+        self.device = device
+        self.latest_image = None
+        self.pending_image = None
+        self.running = True
+        self.pictures_dir = user_dir("PICTURES", "Imágenes")
+        self.videos_dir = user_dir("VIDEOS", "Vídeos")
+        self.recorder = None  # ffmpeg subprocess while recording, else None
+
+        # Same dark palette as ChocoPicKit's console (#1e1e1e / #d4d4d4), and
+        # its red/gray accents for the recording state.
+        BG = "#1e1e1e"
+        FG = "#d4d4d4"
+        BTN_BG = "#2d2d2d"
+        RECORD_ACTIVE = "#f85149"
+
+        root.title("Microscopio")
+        root.configure(bg=BG)
+        root.protocol("WM_DELETE_WINDOW", self.on_close)
+        root.attributes("-fullscreen", True)
+        root.bind("<Escape>", lambda _e: root.attributes("-fullscreen", False))
+
+        button_opts = dict(
+            bg=BTN_BG,
+            fg=FG,
+            activebackground=BTN_BG,
+            activeforeground=FG,
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+        )
+
+        top_bar = tk.Frame(root, bg=BG)
+        top_bar.pack(side=tk.TOP, fill=tk.X, padx=6, pady=6)
+
+        tk.Button(top_bar, text="📷 Foto", command=self.take_photo, **button_opts).pack(
+            side=tk.LEFT, padx=(0, 6)
+        )
+
+        self._record_button_opts = button_opts
+        self.record_button = tk.Button(
+            top_bar, text="⏺ Grabar", command=self.toggle_recording, **button_opts
+        )
+        self.record_button.pack(side=tk.LEFT)
+        self._record_active_bg = RECORD_ACTIVE
+        self._record_idle_bg = BTN_BG
+
+        video_frame = tk.Frame(root, bg="black")
+        video_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.video_label = tk.Label(video_frame, bg="black")
+        self.video_label.pack(fill=tk.BOTH, expand=True)
+
+        self.proc = subprocess.Popen(
+            [
+                "ffmpeg",
+                "-loglevel",
+                "error",
+                "-f",
+                "v4l2",
+                "-input_format",
+                "mjpeg",
+                "-video_size",
+                f"{WIDTH}x{HEIGHT}",
+                "-framerate",
+                str(FPS),
+                "-i",
+                device,
+                "-c",
+                "copy",
+                "-f",
+                "mjpeg",
+                "pipe:1",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=0,
+        )
+        self.reader_thread = threading.Thread(target=self._read_frames, daemon=True)
+        self.reader_thread.start()
+        self._update_display()
+
+    def _read_frames(self):
+        buffer = b""
+        while self.running:
+            chunk = self.proc.stdout.read(4096)
+            if not chunk:
+                break
+            buffer += chunk
+            if len(buffer) > 5_000_000:
+                buffer = buffer[-2_000_000:]
+
+            while True:
+                start = buffer.find(b"\xff\xd8")
+                if start == -1:
+                    buffer = b""
+                    break
+                end = buffer.find(b"\xff\xd9", start + 2)
+                if end == -1:
+                    buffer = buffer[start:]
+                    break
+                frame_bytes = buffer[start : end + 2]
+                buffer = buffer[end + 2 :]
+
+                if self.recorder is not None:
+                    try:
+                        self.recorder.stdin.write(frame_bytes)
+                    except (BrokenPipeError, ValueError):
+                        pass  # recorder was stopped/closed concurrently
+
+                try:
+                    img = Image.open(io.BytesIO(frame_bytes))
+                    img.load()
+                    self.pending_image = img
+                except Exception:
+                    pass  # corrupt frame - this device produces those occasionally, skip it
+
+    def _update_display(self):
+        if self.pending_image is not None:
+            self.latest_image = self.pending_image
+            self.pending_image = None
+
+            avail_w = self.video_label.winfo_width()
+            avail_h = self.video_label.winfo_height()
+            img = self.latest_image
+            if avail_w > 1 and avail_h > 1:
+                scale = min(avail_w / img.width, avail_h / img.height)
+                new_size = (max(1, int(img.width * scale)), max(1, int(img.height * scale)))
+                img = img.resize(new_size, Image.Resampling.BILINEAR)
+
+            tk_img = ImageTk.PhotoImage(img)
+            self.video_label.configure(image=tk_img)
+            self.video_label.image = tk_img
+        if self.running:
+            self.root.after(33, self._update_display)
+
+    def take_photo(self):
+        if self.latest_image is None:
+            notify("Todavía no hay imagen para guardar", urgency="critical")
+            return
+        filename = self.pictures_dir / f"microscopio-{datetime.now():%Y%m%d-%H%M%S}.jpg"
+        self.latest_image.save(filename, quality=95)
+        notify("Foto guardada", str(filename))
+
+    def toggle_recording(self):
+        if self.recorder is None:
+            filename = self.videos_dir / f"microscopio-{datetime.now():%Y%m%d-%H%M%S}.mkv"
+            self.recorder = subprocess.Popen(
+                [
+                    "ffmpeg",
+                    "-loglevel",
+                    "error",
+                    "-f",
+                    "mjpeg",
+                    "-framerate",
+                    str(FPS),
+                    "-i",
+                    "pipe:0",
+                    "-c",
+                    "copy",
+                    str(filename),
+                ],
+                stdin=subprocess.PIPE,
+            )
+            self._recording_file = filename
+            self.record_button.configure(
+                text="⏹ Detener", bg=self._record_active_bg, activebackground=self._record_active_bg
+            )
+        else:
+            recorder = self.recorder
+            self.recorder = None  # stop feeding it before closing stdin
+            try:
+                recorder.stdin.close()
+                recorder.wait(timeout=5)
+            except Exception:
+                recorder.kill()
+            self.record_button.configure(
+                text="⏺ Grabar", bg=self._record_idle_bg, activebackground=self._record_idle_bg
+            )
+            notify("Video guardado", str(self._recording_file))
+
+    def on_close(self):
+        self.running = False
+        if self.recorder is not None:
+            self.toggle_recording()
+        try:
+            self.proc.terminate()
+            self.proc.wait(timeout=2)
+        except Exception:
+            self.proc.kill()
+        self.root.destroy()
+
+
+def main():
+    if not device_present():
+        notify(
+            "Microscopio no encontrado",
+            f"No se detecta el dispositivo USB ({MICROSCOPE_VID_PID}). Conéctalo e intenta de nuevo.",
+            "critical",
+        )
+        sys.exit(1)
+
+    restored = False
+
+    def cleanup():
+        nonlocal restored
+        if not restored:
+            restored = True
+            restore_driver()
+
+    def on_signal(*_):
+        cleanup()
+        sys.exit(1)
+
+    signal.signal(signal.SIGINT, on_signal)
+    signal.signal(signal.SIGTERM, on_signal)
+
+    print(f"Recargando uvcvideo con quirks={QUIRKS} para el microscopio...")
+    if not reload_driver(QUIRKS):
+        notify(
+            "No se pudo recargar uvcvideo",
+            "Cierra cualquier app usando una cámara UVC (incluida una VM con passthrough) e intenta de nuevo.",
+            "critical",
+        )
+        sys.exit(1)
+
+    try:
+        device = wait_for_device()
+        if not device:
+            notify("No se encontró el nodo de video del microscopio", urgency="critical")
+            return
+
+        root = tk.Tk()
+        MicroscopeApp(root, device)
+        root.mainloop()
+    finally:
+        cleanup()
+
+
+if __name__ == "__main__":
+    main()
